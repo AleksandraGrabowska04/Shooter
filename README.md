@@ -1,7 +1,18 @@
 # Shooter
 A simple 2D pixel-art arcade shooter where the player controls a crosshair using hand movements detected by a webcam (via MediaPipe) and shoots approaching zombies before they reach the player.
 
-# Requirements
+# Prepare Environment
 
-To run computer_vision.py, you need Python 3.9+ and the following libraries:
-pip install pygame opencv-python mediapipe
+```bash
+python3.11 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+# Run the Application
+
+```bash
+source venv/bin/activate
+python3.11 computer_vision.py
+```
