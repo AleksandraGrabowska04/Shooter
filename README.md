@@ -31,7 +31,7 @@ python run.py
 
 - **✊ Fist** - System calibration and activation
 - **👈👉 Tilts** - Turn left/right control
-- **☝️👇 Positions** - Up/down movement control
+- **☝️👇👈👉 Positions** - Up/down/left/right movement control
 - **👊 Thumb to Index** - 🔥 SHOOT! (when thumb touches the index finger)
 
 ## ⚙️ Launch Options
