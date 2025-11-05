@@ -1,6 +1,6 @@
-# 🎮 Hand Control System
+# Shooter
 
-Gesture-based hand control system using MediaPipe and OpenCV with clean modular architecture.
+A simple 2D pixel-art arcade shooter where the player controls a crosshair using hand movements detected by a webcam (via MediaPipe) and shoots approaching zombies before they reach the player.
 
 ## ⚡ Quick Start
 
