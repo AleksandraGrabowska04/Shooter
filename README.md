@@ -65,7 +65,7 @@ hand_control
 ├── vision/         # Computer vision (MediaPipe)
 ├── gestures/       # Gesture recognition
 ├── ui/             # Visualization (OpenCV)
-└── utils/          # Utilities (factory, exceptions)
+└── utils/          # Utilities (factory)
 ```
 
 ## 🚀 Usage
