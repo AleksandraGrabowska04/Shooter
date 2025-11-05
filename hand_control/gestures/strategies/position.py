@@ -40,6 +40,26 @@ class PositionDetectionStrategy(GestureDetectionStrategy):
             # Calculate distance from center with quantization
             raw_distance = math.sqrt(dx*dx + dy*dy)  # Keep 2D for position detection
             
+            # Check if distance exceeds maximum allowed range
+            max_distance = self.strategies_config.position.max_distance_from_calibration
+            if raw_distance > max_distance:
+                # Limit displacement to maximum distance
+                scale = max_distance / raw_distance
+                clamped_dx = dx * scale
+                clamped_dy = dy * scale
+                
+                # Return center gesture when too far away
+                return [GestureResult(
+                    gesture_type=GestureType.POSITION,
+                    confidence=0.1,  # Low confidence when out of range
+                    data={
+                        'position_gesture': PositionGesture.CENTER,
+                        'displacement': (clamped_dx, clamped_dy),
+                        'distance': max_distance,  # Clamped distance
+                        'out_of_range': True
+                    }
+                )]
+            
             # Apply deadzone
             deadzone = self.config.gestures.position_threshold * 100  # Convert to pixels
             if raw_distance <= deadzone:

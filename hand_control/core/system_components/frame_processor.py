@@ -241,7 +241,20 @@ class FrameProcessor:
                 # Fallback to manual calculation if not found
                 if rel_pos is None:
                     ref_pos = calibration_data.reference_position
-                    rel_pos = (wrist[0] - ref_pos[0], wrist[1] - ref_pos[1], wrist[2] - ref_pos[2])
+                    dx = wrist[0] - ref_pos[0]
+                    dy = wrist[1] - ref_pos[1]
+                    dz = wrist[2] - ref_pos[2]
+                    
+                    # Limit relative position to maximum distance (from config)
+                    max_distance = self.config.strategies.position.max_distance_from_calibration
+                    current_distance = (dx*dx + dy*dy)**0.5  # 2D distance for consistency
+                    
+                    if current_distance > max_distance:
+                        scale = max_distance / current_distance
+                        dx *= scale
+                        dy *= scale
+                    
+                    rel_pos = (dx, dy, dz)
                 
                 debug_info['relative_position'] = rel_pos
             

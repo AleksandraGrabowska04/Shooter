@@ -12,6 +12,9 @@ class PositionStrategyConfig:
     # Quantization settings
     position_step: float = 5.0  # Pixels for position quantization
     
+    # Distance limits
+    max_distance_from_calibration: float = 100.0  # Maximum allowed distance from calibration point (pixels)
+    
     # Confidence calculation multipliers  
     center_confidence_multiplier: float = 0.3  # Reduces confidence when in deadzone
     edge_confidence_base: float = 0.5  # Base confidence for edge positions

@@ -10,6 +10,7 @@ from .gesture_config import GestureConfig
 from .ui_config import UIConfig
 from .logging_config import LoggingConfig
 from .performance_config import PerformanceConfig
+from .strategies_config import StrategiesConfig
 
 
 @dataclass
@@ -20,6 +21,7 @@ class ApplicationConfig:
     ui: UIConfig = field(default_factory=UIConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     performance: PerformanceConfig = field(default_factory=PerformanceConfig)
+    strategies: StrategiesConfig = field(default_factory=StrategiesConfig)
     
     # Application settings
     enable_debug_mode: bool = False

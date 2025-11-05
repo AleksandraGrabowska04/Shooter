@@ -120,8 +120,10 @@ class OpenCVRenderer(IVisualizationRenderer):
             
             # Draw calibration visualization (always show when landmarks available)
             if landmarks:
+                # Get max distance from strategies config
+                max_distance = self.config.strategies.position.max_distance_from_calibration
                 self.landmark_renderer.draw_calibration_visualization(
-                    frame, landmarks, calibration, self.text_renderer
+                    frame, landmarks, calibration, self.text_renderer, max_distance
                 )
             
         except Exception:
