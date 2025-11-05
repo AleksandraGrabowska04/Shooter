@@ -117,7 +117,7 @@ hand_control
    deactivate
    ```
 
-## � Virtual Environment Management
+## 🛠 Virtual Environment Management
 
 ```bash
 # Activate environment (every time you work on project)
