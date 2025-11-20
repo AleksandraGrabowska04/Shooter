@@ -90,6 +90,16 @@ class FrameProcessor:
             if camera_frame.landmarks:
                 gesture_results = self.gesture_recognizer.detect_gestures(camera_frame.landmarks)
                 
+                # Head gesture detection
+                if camera_frame.face_landmarks:
+                    head_gestures = self.gesture_recognizer.head_detector.detect(camera_frame.face_landmarks)
+                    gesture_results.extend(head_gestures)
+
+                # Debug print head gestures
+                for g in gesture_results:
+                    if getattr(g, "gesture_type", None) and g.gesture_type.name == "HEAD":
+                        self.logger.info(f"[HEAD] Detected: {g.data.get('head_gesture').name}")
+
                 # Track last gesture
                 if gesture_results and any(g.confidence > 0.5 for g in gesture_results):
                     best_gesture = max(gesture_results, key=lambda g: g.confidence)
@@ -170,6 +180,17 @@ class FrameProcessor:
             if calibration_data and landmarks:
                 self.renderer.render_gesture_visualization(frame, landmarks, calibration_data)
             
+            # Draw face landmarks if available
+            if camera_frame.face_landmarks and self.config.ui.show_landmarks:
+                try:
+                    # Access landmark renderer through the main renderer
+                    self.renderer.landmark_renderer.draw_face_landmarks(
+                        frame,
+                        camera_frame.face_landmarks
+                    )
+                except Exception:
+                    pass
+
             # 3. Render debug information if enabled
             if self.config.ui.show_debug_info and landmarks:
                 quantized_landmarks = self._quantize_landmarks_for_debug(landmarks)

@@ -17,6 +17,7 @@ from .strategies import (
     OrientationDetectionStrategy, MotionDetectionStrategy
 )
 
+from .strategies.head import HeadGestureDetectionStrategy
 
 
 class GestureRecognizer(IGestureRecognizer):
@@ -43,6 +44,7 @@ class GestureRecognizer(IGestureRecognizer):
         self.position_detector = PositionDetectionStrategy(config)
         self.orientation_detector = OrientationDetectionStrategy(config)
         self.motion_detector = MotionDetectionStrategy(config)
+        self.head_detector = HeadGestureDetectionStrategy()
         
         self.calibration_frame_count = 0
     

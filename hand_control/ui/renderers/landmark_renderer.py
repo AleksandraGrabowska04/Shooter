@@ -214,3 +214,26 @@ class LandmarkRenderer:
             
         except Exception:
             pass
+
+    def draw_face_landmarks(self, frame: np.ndarray, face_landmarks) -> None:
+        """
+        Draw face landmarks as small points.
+        
+        Args:
+            frame: OpenCV frame to draw on
+            face_landmarks: List of (x, y, z) tuples from face mesh
+        """
+        if not face_landmarks:
+            return
+        
+        try:
+            for (x, y, z) in face_landmarks:
+                cv2.circle(
+                    frame,
+                    (int(x), int(y)),
+                    2,                   # smaller point than hand
+                    (0, 255, 0),         # green
+                    -1
+                )
+        except Exception:
+            pass

@@ -21,6 +21,7 @@ class GestureType(Enum):
     ORIENTATION = auto()
     MOTION = auto()
     SPECIAL = auto()  # For special gestures like SHOOT
+    HEAD = auto()
 
 
 class PositionGesture(Enum):
@@ -46,6 +47,14 @@ class MotionGesture(Enum):
     STATIC = "static"
     FORWARD = "forward"
     BACKWARD = "backward"
+
+class HeadGesture(Enum):
+    TURN_LEFT = "head_turn_left"
+    TURN_RIGHT = "head_turn_right"
+    NOD_UP = "head_nod_up"
+    NOD_DOWN = "head_nod_down"
+    TILT_LEFT = "head_tilt_left"
+    TILT_RIGHT = "head_tilt_right"
 
 
 @dataclass
@@ -118,6 +127,7 @@ class CameraFrame:
     landmarks: Optional[Dict[str, Tuple[float, float, float]]] = None
     timestamp: Optional[float] = None
     frame_id: Optional[int] = None
+    face_landmarks: Optional[List[Tuple[float, float, float]]] = None
 
 
 @dataclass

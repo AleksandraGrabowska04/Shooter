@@ -63,6 +63,15 @@ class MediaPipeHandTracker(IHandTracker):
                 min_detection_confidence=config.gestures.min_detection_confidence,
                 min_tracking_confidence=config.gestures.min_tracking_confidence
             )
+            # Initialize MediaPipe FaceMesh (head landmark model)
+            self.mp_face = mp.solutions.face_mesh
+            self.face_mesh = self.mp_face.FaceMesh(
+                max_num_faces=1,
+                refine_landmarks=True,
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5
+            )
+
         except Exception as e:
             raise Exception(f"Failed to initialize MediaPipe: {e}")
         
@@ -109,11 +118,22 @@ class MediaPipeHandTracker(IHandTracker):
                 frame = cv2.flip(frame, 1)
             
             # Process frame for hand landmarks
-            landmarks = self._extract_landmarks(frame)
+            hand_landmarks = self._extract_landmarks(frame)
+
+            # Process face landmarks
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            face_results = self.face_mesh.process(rgb_frame)
             
+            face_landmarks = None
+            if face_results.multi_face_landmarks:
+                face = face_results.multi_face_landmarks[0]
+                h, w = frame.shape[:2]
+                face_landmarks = [(lm.x * w, lm.y * h, lm.z) for lm in face.landmark]
+
             return CameraFrame(
                 frame=frame,
-                landmarks=landmarks,
+                landmarks=hand_landmarks,
+                face_landmarks=face_landmarks,  
                 timestamp=time.time()
             )
             
