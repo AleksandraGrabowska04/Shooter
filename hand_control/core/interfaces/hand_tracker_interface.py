@@ -10,27 +10,33 @@ from ..types import CameraFrame
 
 class IHandTracker(ABC):
     """Interface for hand tracking components"""
-    
+
+    @abstractmethod
+    def get_last_landmarks(self):
+        """
+        Return the most recent hand landmarks or None if not available.
+        """
+        pass
+
     @abstractmethod
     def read_frame(self) -> Optional[CameraFrame]:
         """
         Read and process a frame from the camera.
-        
         Returns:
             CameraFrame with image and landmarks, or None if failed
         """
         pass
-    
+
     @abstractmethod
     def is_available(self) -> bool:
         """Check if camera is available and working"""
         pass
-    
+
     @abstractmethod
     def release(self) -> None:
         """Release camera resources"""
         pass
-    
+
     def __enter__(self):
         """Context manager entry"""
         return self

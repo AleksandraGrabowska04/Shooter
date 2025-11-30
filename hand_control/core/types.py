@@ -18,10 +18,10 @@ class GestureType(Enum):
     """Types of gestures supported by the system"""
     HAND_STATE = auto()
     POSITION = auto()
-    ORIENTATION = auto()
-    MOTION = auto()
-    SPECIAL = auto()  # For special gestures like SHOOT
-    HEAD = auto()
+    ACTIVATION = auto()
+    HEAD_TILT = auto()
+    HEAD_TURN = auto()
+    HEAD_NOD = auto()
 
 
 class PositionGesture(Enum):
@@ -33,30 +33,6 @@ class PositionGesture(Enum):
     RIGHT = "right"
 
 
-class OrientationGesture(Enum):
-    """Orientation-based gestures (hand rotation)"""
-    NEUTRAL = "neutral"
-    THUMB_UP = "thumb_up"
-    THUMB_DOWN = "thumb_down"
-    ROLL_LEFT = "roll_left"
-    ROLL_RIGHT = "roll_right"
-
-
-class MotionGesture(Enum):
-    """Motion-based gestures"""
-    STATIC = "static"
-    FORWARD = "forward"
-    BACKWARD = "backward"
-
-class HeadGesture(Enum):
-    TURN_LEFT = "head_turn_left"
-    TURN_RIGHT = "head_turn_right"
-    NOD_UP = "head_nod_up"
-    NOD_DOWN = "head_nod_down"
-    TILT_LEFT = "head_tilt_left"
-    TILT_RIGHT = "head_tilt_right"
-
-
 @dataclass
 class GestureResult:
     """Result of gesture detection"""
@@ -64,16 +40,17 @@ class GestureResult:
     confidence: float
     data: Optional[Dict[str, Any]] = None  # Additional gesture-specific data
     timestamp: Optional[float] = None
-    
+
     @property
     def name(self) -> str:
         """Get gesture name for display"""
         return self.gesture_type.name
-    
+
     def __post_init__(self):
         """Validate confidence range"""
         if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.confidence}")
+            raise ValueError(
+                f"Confidence must be between 0.0 and 1.0, got {self.confidence}")
 
 
 @dataclass
@@ -83,27 +60,24 @@ class ControlState:
     is_active: bool
     is_calibrated: bool
     status_message: str
-    
+
     # Detected gestures
     hand_state: HandState
-    position_gesture: PositionGesture
-    orientation_gesture: OrientationGesture
-    motion_gesture: MotionGesture
-    
+
     # Primary gesture (highest confidence)
     primary_gesture: Optional[GestureResult] = None
-    
+
     # All detected gestures with confidence scores
     all_gestures: Optional[List[GestureResult]] = None
-    
+
     # Debug information (optional)
     debug_info: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Initialize default values"""
         if self.all_gestures is None:
             self.all_gestures = []
-    
+
     def get_gesture_by_type(self, gesture_type: GestureType) -> Optional[GestureResult]:
         """Get the first gesture of specified type"""
         if self.all_gestures is None:
@@ -112,7 +86,7 @@ class ControlState:
             if gesture.gesture_type == gesture_type:
                 return gesture
         return None
-    
+
     def has_high_confidence_gesture(self, min_confidence: float = 0.8) -> bool:
         """Check if any gesture has high confidence"""
         if self.all_gestures is None:
@@ -132,8 +106,9 @@ class CameraFrame:
 
 @dataclass
 class CalibrationData:
-    """Hand calibration data"""
+    """Hand and head calibration data"""
     is_calibrated: bool = False
     reference_position: Optional[Tuple[float, float, float]] = None
     reference_orientation: Optional[Dict[str, Any]] = None
     calibration_timestamp: Optional[float] = None
+    head_pitch_neutral: Optional[float] = None

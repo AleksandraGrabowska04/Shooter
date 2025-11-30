@@ -59,51 +59,23 @@ class DefaultComponentFactory(IComponentFactory):
     
     def create_hand_tracker(self) -> IHandTracker:
         """Create hand tracker instance"""
-        try:
-            # Try to import actual MediaPipe implementation first
-            from ..vision.mediapipe_tracker import MediaPipeHandTracker
-            return MediaPipeHandTracker(self._config)
-        except Exception as e:
-            # Fall back to stub implementation
-            self._logger.warning(f"Using stub hand tracker - MediaPipe implementation failed: {e}")
-            from .stubs import StubHandTracker
-            return StubHandTracker(self._config)
+        from ..vision.mediapipe_tracker import MediaPipeHandTracker
+        return MediaPipeHandTracker(self._config)
     
     def create_gesture_recognizer(self) -> IGestureRecognizer:
         """Create gesture recognizer instance"""
-        try:
-            # Import actual gesture recognizer
-            from ..gestures.recognizer import GestureRecognizer
-            return GestureRecognizer(self._config)
-        except Exception as e:
-            # Fall back to stub implementation
-            self._logger.warning(f"Using stub gesture recognizer - implementation failed: {e}")
-            from .stubs import StubGestureRecognizer
-            return StubGestureRecognizer(self._config)
+        from ..gestures.recognizer import GestureRecognizer
+        return GestureRecognizer(self._config)
     
     def create_game_controller(self) -> IGameController:
         """Create game controller instance"""
-        try:
-            # Import actual game controller
-            from ..gestures.game_controller import GameController
-            return GameController(self._config, self.create_logger("GameController"))
-        except Exception as e:
-            # Fall back to stub implementation
-            self._logger.warning(f"Using stub game controller - actual implementation failed: {e}")
-            from .stubs import StubGameController
-            return StubGameController(self._config, self.create_logger("GameController"))
+        from ..gestures.game_controller import GameController
+        return GameController(self._config, self.create_logger("GameController"))
     
     def create_visualization_renderer(self) -> IVisualizationRenderer:
         """Create visualization renderer instance"""
-        try:
-            # Import actual OpenCV renderer
-            from ..ui.opencv_renderer import OpenCVRenderer
-            return OpenCVRenderer(self._config)
-        except Exception as e:
-            # Fall back to stub implementation  
-            self._logger.warning(f"Using stub visualization renderer - OpenCV implementation failed: {e}")
-            from .stubs import StubVisualizationRenderer
-            return StubVisualizationRenderer(self._config)
+        from ..ui.opencv_renderer import OpenCVRenderer
+        return OpenCVRenderer(self._config)
     
     def create_logger(self, name: str) -> ILogger:
         """Create logger instance"""

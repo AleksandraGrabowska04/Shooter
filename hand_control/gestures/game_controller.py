@@ -8,7 +8,7 @@ from ..core.interfaces import IGameController, ILogger
 from ..core.config import ApplicationConfig
 from ..core.types import (
     ControlState, GestureResult,
-    HandState, PositionGesture, OrientationGesture, MotionGesture
+    HandState, PositionGesture
 )
 from .controllers import (
     HandStateTracker, GestureProcessor,
@@ -19,7 +19,6 @@ from .controllers import (
 class GameController(IGameController):
     """
     Game controller that processes gesture results into control state.
-
     This controller translates raw gesture detection results into meaningful
     game control commands and state information.
     """
@@ -36,6 +35,9 @@ class GameController(IGameController):
         self.logger = logger
         self._debug_mode = config.enable_debug_mode
         self._active = True
+
+        self._reset_calibration_callback = None
+        self._recalibrate_callback = None
 
         # Initialize specialized components
         self._hand_tracker = HandStateTracker(logger)
@@ -60,77 +62,85 @@ class GameController(IGameController):
             Control state with commands and status
         """
         try:
-            # Extract gesture information by type
+            # 1. Categorize raw results
             gesture_data = self._gesture_processor.categorize_gestures(
                 gesture_results)
 
-            # Determine hand state and handle recalibration
+            # 2. Determine base hand state (Fist/Open)
             hand_state = self._gesture_processor.determine_hand_state(
                 gesture_data)
-            recalibration_triggered = self._hand_tracker.update_hand_state(
-                hand_state)
+            self._hand_tracker.update_hand_state(hand_state)
 
-            # System is active only when fist is detected
-            is_active = hand_state == HandState.FIST
+            # 3. Toggle activation state on activation gesture
+            is_hand_activation = self._gesture_processor.check_activation_gesture(
+                gesture_data)
+            if is_hand_activation:
+                self._active = not self._active
+                self.logger.info(
+                    f"[TOGGLE] Tracking state changed: {'ON' if self._active else 'OFF'}")
+                # On OFF: reset calibration
+                if not self._active and self._reset_calibration_callback:
+                    self.logger.info("[TOGGLE] Resetting calibration (OFF)")
+                    self._reset_calibration_callback()
+                # On ON: recalibrate (if callback provided)
+                elif self._active and self._recalibrate_callback:
+                    self.logger.info("[TOGGLE] Recalibrating (ON)")
+                    self._recalibrate_callback()
+            is_active = self._active
 
-            # Process other gestures only when system is active (fist detected)
-            if is_active:
+            # 4. Extract Control Inputs
+            position_gesture = PositionGesture.CENTER
+            special_action = None
+
+            if is_active and hand_state == HandState.FIST:
                 position_gesture = self._gesture_processor.determine_position_gesture(
                     gesture_data)
-                orientation_gesture = self._gesture_processor.determine_orientation_gesture(
+                special_action = "SHOOT"
+            elif is_active:
+                position_gesture = self._gesture_processor.determine_position_gesture(
                     gesture_data)
-                motion_gesture = self._gesture_processor.determine_motion_gesture(
-                    gesture_data)
-                special_action = self._gesture_processor.check_special_gestures(
-                    gesture_data)
-                primary_gesture = self._gesture_processor.find_primary_gesture(
-                    gesture_results)
-            else:
-                position_gesture = PositionGesture.CENTER
-                orientation_gesture = OrientationGesture.NEUTRAL
-                motion_gesture = MotionGesture.STATIC
-                special_action = None
-                primary_gesture = None
 
-            # Generate status message
+            primary_gesture = self._gesture_processor.find_primary_gesture(
+                gesture_results)
+
+            # 5. Generate User Feedback (Status Message)
+            # Head gestures are always available for status
             status_message = self._status_generator.generate_status_message(
-                hand_state, position_gesture, orientation_gesture, motion_gesture, gesture_data, special_action
+                hand_state,
+                position_gesture,
+                gesture_data,
+                special_action
             )
 
-            # Create control state
+            # 6. Construct Control State
+            # Note: ControlState needs to support extra fields if you want to pass Head Gestures
+            # deeper into the game engine. For now, we attach all_gestures.
             control_state = ControlState(
                 is_active=is_active,
-                is_calibrated=True,  # Assume calibrated if we have gestures
+                is_calibrated=True,  # Assuming calibrated if gestures are valid
                 status_message=status_message,
                 hand_state=hand_state,
-                position_gesture=position_gesture,
-                orientation_gesture=orientation_gesture,
-                motion_gesture=motion_gesture,
                 primary_gesture=primary_gesture,
                 all_gestures=gesture_results
             )
 
-            # Apply smoothing
+            # 7. Apply Smoothing (to position/state)
             smoothed_state = self._control_smoother.apply_smoothing(
                 control_state)
 
-            if self._debug_mode:
-                self.logger.debug(f"Control state: {status_message}")
+            if self._debug_mode and self.config.ui.show_debug_info:
+                # Log periodically or on change could be better
+                pass
 
             return smoothed_state
 
         except Exception as e:
             self.logger.error(f"Error processing gestures: {e}")
-
-            # Return safe default state on error
             return ControlState(
                 is_active=False,
                 is_calibrated=False,
                 status_message="Error processing gestures",
                 hand_state=HandState.NONE,
-                position_gesture=PositionGesture.CENTER,
-                orientation_gesture=OrientationGesture.NEUTRAL,
-                motion_gesture=MotionGesture.STATIC,
                 primary_gesture=None,
                 all_gestures=[]
             )
@@ -149,35 +159,36 @@ class GameController(IGameController):
     def get_gesture_summary(self, gesture_results: List[GestureResult]) -> Dict[str, Any]:
         """
         Get a summary of current gesture state for debugging.
-
-        Args:
-            gesture_results: List of current gesture results
-
-        Returns:
-            Dictionary with gesture summary information
         """
         gesture_data = self._gesture_processor.categorize_gestures(
             gesture_results)
 
+        # Add head gestures to summary
+        head_gestures = self._gesture_processor.get_head_gestures(gesture_data)
+
+        # Activation only for hand gestures
+        hand_state = self._gesture_processor.determine_hand_state(gesture_data)
+        is_hand_activation = self._gesture_processor.check_activation_gesture(
+            gesture_data)
+        special_action = "SHOOT" if is_hand_activation and hand_state == HandState.FIST else None
         summary = {
             'total_gestures': len(gesture_results),
-            'gesture_types': list(gesture_data.keys()),
-            'confidence_scores': {
-                str(gtype): [g.confidence for g in gestures]
-                for gtype, gestures in gesture_data.items()
-            },
-            'hand_state': self._gesture_processor.determine_hand_state(gesture_data).value,
+            'gesture_types': [t.name if hasattr(t, 'name') else str(t) for t in gesture_data.keys()],
+            'hand_state': hand_state.value,
             'position': self._gesture_processor.determine_position_gesture(gesture_data).value,
-            'orientation': self._gesture_processor.determine_orientation_gesture(gesture_data).value,
-            'motion': self._gesture_processor.determine_motion_gesture(gesture_data).value
+            'special': special_action,
+            'head': head_gestures
         }
-
         return summary
 
     def set_reset_calibration_callback(self, callback):
-        """Set callback function for resetting calibration."""
+        """Set callback function for resetting calibration (OFF state)."""
+        self._reset_calibration_callback = callback
         self._hand_tracker.set_reset_calibration_callback(callback)
-        self.logger.info(f"Reset calibration callback set: {callback is not None}")
+
+    def set_recalibrate_callback(self, callback):
+        """Set callback function for recalibrating (ON state)."""
+        self._recalibrate_callback = callback
 
     def reset_state(self) -> None:
         """Reset controller state and history."""
