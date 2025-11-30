@@ -35,7 +35,7 @@ class FrameProcessor:
 
         self.logger = logger
 
-        # Components (will be set externally)
+        # Components (set externally)
         self.hand_tracker: Optional[IHandTracker] = None
         self.gesture_recognizer: Optional[IGestureRecognizer] = None
         self.renderer: Optional[IVisualizationRenderer] = None
@@ -44,14 +44,11 @@ class FrameProcessor:
         # State tracking
         self.frame_count = 0
         self.last_gesture = None
-        self.last_fist_state = False  # Track if we were in fist state last frame
+        self.last_fist_state = False  # Track if the last frame was a fist
 
         # Shoot display state
         self.shoot_display_until = 0  # Timestamp until which to show shoot indicator
         self.shoot_display_duration = self.performance_config.frame_processor.shoot_display_timeout
-        self.consecutive_shoots = 0   # Count consecutive shoots
-        self.last_shoot_time = 0      # Time of last shoot
-        self.shoot_combo_timeout = self.performance_config.frame_processor.debug_display_timeout
 
     def set_components(self, hand_tracker: IHandTracker,
                        gesture_recognizer: IGestureRecognizer,
@@ -114,10 +111,6 @@ class FrameProcessor:
                 head_detector = getattr(
                     self.gesture_recognizer, 'head_detector', None)
                 if head_detector and hasattr(head_detector, 'detect'):
-                    # Convert list to dict with standard FaceMesh keys
-                    facemesh_keys = [
-                        "NOSE", "LEFT_EYE", "RIGHT_EYE", "LEFT_EAR", "RIGHT_EAR"
-                    ]
                     # Indices for these points in Mediapipe FaceMesh (468 points)
                     # These are approximate, for demo purposes:
                     facemesh_indices = {
@@ -137,56 +130,21 @@ class FrameProcessor:
                         face_landmarks_dict, calibration)
                     gesture_results.extend(head_gestures)
 
-            # --- ADAPTED: Specific logging for Head Gestures (Tilt/Turn/Nod) ---
-            for g in gesture_results:
-                g_type_name = getattr(g.gesture_type, "name", str(
-                    g.gesture_type)) if hasattr(g, "gesture_type") else ""
-
-                # Check for HEAD prefix (covers HEAD_TILT, HEAD_TURN, HEAD_NOD)
-                if g_type_name.startswith("HEAD"):
-                    data_info = ""
-                    if hasattr(g, 'data') and g.data:
-                        # Extract relevant fields from our new Strategy format
-                        direction = g.data.get('direction', '')
-                        # Try to find a numeric value to show intensity
-                        val = g.data.get('angle', g.data.get(
-                            'ratio', g.data.get('offset', '')))
-
-                        if isinstance(val, (int, float)):
-                            data_info = f"{direction} ({val:.2f})"
-                        else:
-                            data_info = f"{direction}"
-
-                    self.logger.info(f"[{g_type_name}] {data_info}")
-
-            # --- ADAPTED: Check for Activation Gesture (Rotation) ---
-            for g in gesture_results:
-                g_type_name = getattr(g.gesture_type, "name", str(
-                    g.gesture_type)) if hasattr(g, "gesture_type") else ""
-                if g_type_name == "ACTIVATION":
-                    self.logger.info("[ACTIVATION] Hand Rotation Detected!")
-                    # Optional: You could trigger calibration here if desired
-                    # if not self.gesture_recognizer.is_calibrated():
-                    #     self.gesture_recognizer.calibrate(camera_frame.landmarks)
-
             # Track last gesture (for debug/UI)
             if gesture_results and any(g.confidence > 0.5 for g in gesture_results):
                 best_gesture = max(
                     gesture_results, key=lambda g: g.confidence)
                 self.last_gesture = getattr(
                     best_gesture, 'name', 'Unknown')
-                # Log general gestures (debug level to avoid spam)
                 self.logger.debug(f"Gesture detected: {self.last_gesture}")
 
             # Calibration logic: calibrate only on activation gesture
-            activation_detected = False
-            for result in gesture_results:
-                if (hasattr(result, 'gesture_type') and
-                    result.gesture_type.name == 'ACTIVATION' and
-                        result.confidence > 0.5):
-                    activation_detected = True
-                    break
-
+            activation_detected = any(
+                hasattr(result, 'gesture_type') and
+                getattr(result.gesture_type, 'name', '') == 'ACTIVATION' and
+                getattr(result, 'confidence', 0.0) > 0.5
+                for result in gesture_results
+            )
             if activation_detected and camera_frame.landmarks and not self.gesture_recognizer.is_calibrated():
                 if self.gesture_recognizer.calibrate(camera_frame.landmarks):
                     self.logger.info("[ACTIVATION] Calibration completed!")
@@ -260,35 +218,27 @@ class FrameProcessor:
                     except Exception:
                         pass
 
-            # 3. Render debug information if enabled
-            if self.config.ui.show_debug_info and landmarks:
+            # 3. Render debug information and head gesture bars if enabled
+            if self.config.ui.show_debug_info:
                 quantized_landmarks = self._quantize_landmarks_for_debug(
-                    landmarks)
+                    landmarks) if landmarks else None
                 debug_info = self._collect_debug_info(
                     quantized_landmarks, gesture_results, control_state, calibration_data)
                 self.renderer.render_debug_info(frame, debug_info)
+
+                # Head gesture bars
+                head_strengths = debug_info.get('head_strengths')
+                if head_strengths:
+                    self.renderer.render_gesture_bars(frame, head_strengths)
 
             # 5. Render shoot indication with display timeout
             current_time = time.time()
 
             # Check if new shoot detected
             if self._check_shooting_state(gesture_results):
-                # Reset combo if too much time passed since last shoot
-                if current_time - self.last_shoot_time > self.shoot_combo_timeout:
-                    self.consecutive_shoots = 0
-
-                # Increment shoot count
-                self.consecutive_shoots += 1
-                self.last_shoot_time = current_time
                 self.shoot_display_until = current_time + self.shoot_display_duration
-
-                # Log with combo count
-                if self.consecutive_shoots == 1:
-                    self.logger.info(
-                        f"[SHOOT] Detected - displaying for {self.shoot_display_duration:.1f}s")
-                else:
-                    self.logger.info(
-                        f"[SHOOT] x{self.consecutive_shoots} Combo! - displaying for {self.shoot_display_duration:.1f}s")
+                self.logger.info(
+                    f"[SHOOT] Detected - displaying for {self.shoot_display_duration:.1f}s")
 
             # Show shoot indicator if still within display time
             if current_time < self.shoot_display_until:
@@ -376,14 +326,6 @@ class FrameProcessor:
             debug_info['special_actions'] = special_actions
             debug_info['is_shooting'] = 'SHOOT' in special_actions
 
-            # Shoot combo info
-            current_time = time.time()
-            if (self.consecutive_shoots > 0 and
-                    current_time - self.last_shoot_time < self.shoot_combo_timeout):
-                debug_info['shoot_combo'] = self.consecutive_shoots
-            else:
-                debug_info['shoot_combo'] = 0
-
         # Head gestures summary (for UI)
         head_gestures = []
         head_strengths = {}
@@ -393,25 +335,34 @@ class FrameProcessor:
                     gtype = getattr(gesture.gesture_type, 'name', str(gesture.gesture_type))
                     if gtype.startswith('HEAD'):
                         direction = gesture.data.get('direction', '')
-                        value = gesture.data.get('angle', gesture.data.get('ratio', gesture.data.get('offset', 0.0)))
-                        # value можа быць None, таму гарантуем float
-                        try:
-                            value = float(value)
-                        except Exception:
-                            value = 0.0
                         if gtype == 'HEAD_TILT':
+                            raw = gesture.data.get('value', 0.0)
+                            try:
+                                raw = float(raw)
+                            except Exception:
+                                raw = 0.0
+                            value = max(-1.0, min(1.0, raw / 45.0))
                             head_gestures.append(f"TILT {str(direction).upper()}")
-                            head_strengths['head_tilt'] = {'direction': direction, 'value': value}
+                            head_strengths['head_tilt'] = {'direction': direction, 'value': value, 'debug': raw}
                         elif gtype == 'HEAD_TURN':
+                            value = gesture.data.get('value', 0.0)
+                            try:
+                                value = float(value)
+                            except Exception:
+                                value = 0.0
                             head_gestures.append(f"TURN {str(direction).upper()}")
-                            head_strengths['head_turn'] = {'direction': direction, 'value': value}
+                            head_strengths['head_turn'] = {'direction': direction, 'value': value, 'debug': value}
                         elif gtype == 'HEAD_NOD':
+                            raw = gesture.data.get('value', 0.0)
+                            try:
+                                raw = float(raw)
+                            except Exception:
+                                raw = 0.0
+                            value = max(-1.0, min(1.0, raw / 0.3))
                             head_gestures.append(f"NOD {str(direction).upper()}")
-                            head_strengths['head_nod'] = {'direction': direction, 'value': value}
-        if head_gestures:
-            debug_info['head'] = ', '.join(head_gestures)
-        if head_strengths:
-            debug_info['head_strengths'] = head_strengths
+                            head_strengths['head_nod'] = {'direction': direction, 'value': value, 'debug': raw}
+        debug_info['head'] = ', '.join(head_gestures)
+        debug_info['head_strengths'] = head_strengths
 
         return debug_info
 

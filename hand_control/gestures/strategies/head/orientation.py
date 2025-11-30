@@ -76,13 +76,15 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
             # angle < 0 means left ear is lower -> TILT LEFT
             direction = "right" if roll_angle > 0 else "left"
             confidence = clamp_confidence(abs(roll_angle) / 45.0)
+            # Pass raw roll_angle as value, normalization for UI will be done in debug_info
             results.append(GestureResult(
                 gesture_type=GestureType.HEAD_TILT,
                 confidence=confidence,
                 data={
                     "direction": direction,
                     "angle": roll_angle,
-                    "value": roll_angle
+                    "value": roll_angle,
+                    "debug": roll_angle
                 }
             ))
 
@@ -134,13 +136,15 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
         if abs(pitch_delta) > self.nod_threshold:
             direction = "down" if pitch_delta > 0 else "up"
             confidence = clamp_confidence(abs(pitch_delta) / 0.3)
+            # Pass raw pitch_delta as value, normalization for UI will be done in debug_info
             results.append(GestureResult(
                 gesture_type=GestureType.HEAD_NOD,
                 confidence=confidence,
                 data={
                     "direction": direction,
                     "delta": pitch_delta,
-                    "value": pitch_ratio
+                    "value": pitch_delta,
+                    "debug": pitch_delta
                 }
             ))
         return results
