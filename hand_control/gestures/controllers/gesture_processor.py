@@ -6,7 +6,8 @@ from typing import List, Dict, Optional, Any
 
 from ...core.interfaces import ILogger
 from ...core.types import (
-    GestureResult, GestureType, HandState, PositionGesture
+    GestureResult, GestureType, HandState, PositionGesture,
+    MovementVector, RotationVector
 )
 
 
@@ -84,8 +85,8 @@ class GestureProcessor:
         Returns:
             Detected position gesture
         """
-        if GestureType.POSITION in gesture_data and gesture_data[GestureType.POSITION]:
-            position_data = gesture_data[GestureType.POSITION][0].data
+        if GestureType.POSITION_VECTOR in gesture_data and gesture_data[GestureType.POSITION_VECTOR]:
+            position_data = gesture_data[GestureType.POSITION_VECTOR][0].data
             if position_data and 'position_gesture' in position_data:
                 return position_data['position_gesture']
 
@@ -142,7 +143,7 @@ class GestureProcessor:
             if res.data:
                 head_gestures['nod'] = {
                     'direction': res.data.get('direction'),
-                    'value': res.data.get('offset', 0.0)
+                    'value': res.data.get('value', 0.0)
                 }
 
         return head_gestures
@@ -162,6 +163,77 @@ class GestureProcessor:
 
         # Return gesture with highest confidence
         return max(gesture_results, key=lambda g: g.confidence)
+
+    def extract_movement_vector(self, gesture_data: Dict[GestureType, List[GestureResult]]) -> Optional[MovementVector]:
+        """
+        Extract movement vector from position gesture data.
+
+        Args:
+            gesture_data: Categorized gesture results
+
+        Returns:
+            MovementVector if available, None otherwise
+        """
+        if GestureType.POSITION_VECTOR in gesture_data:
+            gesture = gesture_data[GestureType.POSITION_VECTOR][0]
+            if gesture.data and 'movement_vector' in gesture.data:
+                return gesture.data['movement_vector']
+        
+        return None
+
+    def extract_rotation_vector(self, gesture_data: Dict[GestureType, List[GestureResult]]) -> Optional[RotationVector]:
+        """
+        Extract rotation vector from head orientation data.
+
+        Args:
+            gesture_data: Categorized gesture results
+
+        Returns:
+            RotationVector if available, None otherwise
+        """
+        if GestureType.HEAD_ORIENTATION in gesture_data:
+            gesture = gesture_data[GestureType.HEAD_ORIENTATION][0]
+            if gesture.data and 'rotation_vector' in gesture.data:
+                return gesture.data['rotation_vector']
+
+        tilt = 0.0
+        turn = 0.0
+        nod = 0.0
+
+        if GestureType.HEAD_TILT in gesture_data:
+            gesture = gesture_data[GestureType.HEAD_TILT][0]
+            if gesture.data:
+                raw = gesture.data.get('value', gesture.data.get('angle', 0.0))
+                try:
+                    raw = float(raw)
+                except Exception:
+                    raw = 0.0
+                tilt = max(-1.0, min(1.0, raw / 45.0))
+
+        if GestureType.HEAD_TURN in gesture_data:
+            gesture = gesture_data[GestureType.HEAD_TURN][0]
+            if gesture.data:
+                raw = gesture.data.get('ratio', gesture.data.get('value', 0.0))
+                try:
+                    raw = float(raw)
+                except Exception:
+                    raw = 0.0
+                turn = max(-1.0, min(1.0, raw))
+
+        if GestureType.HEAD_NOD in gesture_data:
+            gesture = gesture_data[GestureType.HEAD_NOD][0]
+            if gesture.data:
+                raw = gesture.data.get('value', 0.0)
+                try:
+                    raw = float(raw)
+                except Exception:
+                    raw = 0.0
+                nod = max(-1.0, min(1.0, raw / 0.3))
+
+        if abs(tilt) > 0 or abs(turn) > 0 or abs(nod) > 0:
+            return RotationVector(tilt=tilt, turn=turn, nod=nod)
+
+        return None
 
     def set_debug_mode(self, enabled: bool) -> None:
         """Enable or disable debug mode."""

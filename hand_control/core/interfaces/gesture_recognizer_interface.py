@@ -12,12 +12,17 @@ class IGestureRecognizer(ABC):
     """Interface for gesture recognition components"""
     
     @abstractmethod
-    def detect_gestures(self, landmarks: Optional[dict]) -> List[GestureResult]:
+    def detect_gestures(
+        self,
+        landmarks: Optional[dict],
+        face_landmarks: Optional[list] = None
+    ) -> List[GestureResult]:
         """
         Detect gestures from hand landmarks.
         
         Args:
             landmarks: Hand landmarks dictionary or None
+            face_landmarks: Optional face landmarks for head pose detection
             
         Returns:
             List of detected gestures with confidence scores

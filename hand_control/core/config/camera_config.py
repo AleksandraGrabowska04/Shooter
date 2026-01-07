@@ -3,15 +3,21 @@ Camera configuration settings.
 """
 
 from dataclasses import dataclass
+from ...constants import (
+    DEFAULT_CAMERA_WIDTH,
+    DEFAULT_CAMERA_HEIGHT,
+    DEFAULT_FPS,
+    DEFAULT_CAMERA_INDEX
+)
 
 
 @dataclass
 class CameraConfig:
     """Camera configuration settings"""
-    width: int = 640
-    height: int = 480
-    fps: int = 30
-    camera_index: int = 0
+    width: int = DEFAULT_CAMERA_WIDTH
+    height: int = DEFAULT_CAMERA_HEIGHT
+    fps: int = DEFAULT_FPS
+    camera_index: int = DEFAULT_CAMERA_INDEX
     flip_horizontal: bool = True
     
     def __post_init__(self):

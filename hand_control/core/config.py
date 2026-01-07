@@ -5,31 +5,21 @@ This module provides a modular configuration system with separate components
 for different aspects of the application (camera, gestures, UI, etc.).
 """
 
-# Import all configuration components for backward compatibility
+# Convenience re-exports for configuration components
 from .config import (
     CameraConfig,
     GestureConfig,
-    UIConfig,
-    LoggingConfig,
     PerformanceConfig,
-    ApplicationConfig,
-    ConfigLoader,
-    ConfigValidator,
-    load_config
+    ApplicationConfig
 )
 
-# Default configuration instance for backward compatibility
+# Default configuration instance
 DEFAULT_CONFIG = ApplicationConfig()
 
 __all__ = [
     'CameraConfig',
     'GestureConfig',
-    'UIConfig',
-    'LoggingConfig',
     'PerformanceConfig',
     'ApplicationConfig',
-    'ConfigLoader',
-    'ConfigValidator',
-    'load_config',
     'DEFAULT_CONFIG'
 ]

@@ -3,13 +3,14 @@ Performance monitoring configuration settings.
 """
 
 from dataclasses import dataclass
+from ...constants import FPS_AVERAGING_WINDOW
 
 
 @dataclass
 class PerformanceConfig:
     """Performance monitoring configuration"""
     enable_metrics: bool = False
-    fps_averaging_window: int = 30
+    fps_averaging_window: int = FPS_AVERAGING_WINDOW
     gesture_timing_enabled: bool = False
     memory_monitoring: bool = False
     

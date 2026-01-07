@@ -3,6 +3,11 @@ Gesture recognition configuration settings.
 """
 
 from dataclasses import dataclass
+from ...constants import (
+    MIN_DETECTION_CONFIDENCE,
+    MIN_TRACKING_CONFIDENCE,
+    FIST_THRESHOLD
+)
 
 
 @dataclass
@@ -10,7 +15,7 @@ class GestureConfig:
     """Gesture recognition configuration"""
     # Fist detection
     fist_finger_threshold: float = 0.15
-    fist_confidence_threshold: float = 0.7
+    fist_confidence_threshold: float = FIST_THRESHOLD
     
     # Position detection  
     position_smoothing_factor: float = 0.3
@@ -26,8 +31,8 @@ class GestureConfig:
     
     # General
     calibration_frames: int = 5
-    min_detection_confidence: float = 0.5
-    min_tracking_confidence: float = 0.5
+    min_detection_confidence: float = MIN_DETECTION_CONFIDENCE
+    min_tracking_confidence: float = MIN_TRACKING_CONFIDENCE
     
     def __post_init__(self):
         """Validate gesture configuration after initialization."""

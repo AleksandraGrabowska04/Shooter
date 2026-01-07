@@ -43,41 +43,47 @@ class GestureRecognizer(IGestureRecognizer):
 
         self.calibration_frame_count = 0
 
-    def detect_gestures(self, landmarks: Optional[dict]) -> List[GestureResult]:
+    def detect_gestures(
+        self,
+        landmarks: Optional[dict],
+        face_landmarks: Optional[list] = None
+    ) -> List[GestureResult]:
         """
         Detect gestures from hand landmarks.
 
         Args:
             landmarks: Hand landmarks dictionary or None
+            face_landmarks: Optional face landmarks for head pose detection
 
         Returns:
             List of detected gestures with confidence scores
         """
-        if not landmarks:
-            return []
-
         try:
-            # Convert landmarks format if needed
-            processed_landmarks = self._process_landmarks(landmarks)
-
             # Collect all gesture results
             all_gestures = []
 
-            # Run each detection strategy
-            fist_gestures = self.fist_detector.detect(
-                processed_landmarks, self.calibration_data)
-            all_gestures.extend(fist_gestures)
+            processed_landmarks = None
+            if landmarks:
+                # Convert landmarks format if needed
+                processed_landmarks = self._process_landmarks(landmarks)
 
-            all_gestures.extend(self.position_detector.detect(
-                processed_landmarks, self.calibration_data))
-            all_gestures.extend(self.activation_detector.detect(
-                processed_landmarks, self.calibration_data))
+                # Run each detection strategy for hand landmarks
+                fist_gestures = self.fist_detector.detect(
+                    processed_landmarks, self.calibration_data)
+                all_gestures.extend(fist_gestures)
 
-            # Head gesture detection (if head landmarks present)
-            # If you want to support separate head landmarks, pass them as a separate argument
-            head_gestures = self.head_detector.detect(
-                processed_landmarks, self.calibration_data)
-            all_gestures.extend(head_gestures)
+                all_gestures.extend(self.position_detector.detect(
+                    processed_landmarks, self.calibration_data))
+                all_gestures.extend(self.activation_detector.detect(
+                    processed_landmarks, self.calibration_data))
+
+            # Head gesture detection (if face landmarks present)
+            if face_landmarks:
+                face_landmarks_dict = self._map_face_landmarks(face_landmarks)
+                if face_landmarks_dict:
+                    head_gestures = self.head_detector.detect(
+                        face_landmarks_dict, self.calibration_data)
+                    all_gestures.extend(head_gestures)
 
             # Filter by confidence threshold
             filtered_gestures = [
@@ -99,6 +105,21 @@ class GestureRecognizer(IGestureRecognizer):
         else:
             # Convert other formats as needed
             return landmarks
+
+    def _map_face_landmarks(self, face_landmarks: list) -> Dict[str, Tuple[float, float, float]]:
+        """Map MediaPipe face landmarks to the keys used by head gesture detection."""
+        facemesh_indices = {
+            "NOSE": 1,
+            "LEFT_EYE": 33,
+            "RIGHT_EYE": 263,
+            "LEFT_EAR": 234,
+            "RIGHT_EAR": 454
+        }
+        face_landmarks_dict: Dict[str, Tuple[float, float, float]] = {}
+        if isinstance(face_landmarks, list) and len(face_landmarks) > max(facemesh_indices.values()):
+            for key, idx in facemesh_indices.items():
+                face_landmarks_dict[key] = face_landmarks[idx]
+        return face_landmarks_dict
 
     def calibrate(self, landmarks: dict) -> bool:
         """

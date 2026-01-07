@@ -7,6 +7,55 @@ from enum import Enum, auto
 from typing import Dict, List, Optional, Tuple, Any
 
 
+@dataclass
+class Vector2D:
+    """2D vector for movement and displacement."""
+    x: float = 0.0
+    y: float = 0.0
+    
+    def to_tuple(self) -> Tuple[float, float]:
+        """Convert to tuple format."""
+        return (self.x, self.y)
+    
+    @classmethod
+    def from_tuple(cls, data: Tuple[float, float]) -> 'Vector2D':
+        """Create from tuple."""
+        return cls(data[0], data[1])
+
+
+@dataclass
+class MovementVector:
+    """Vector-based movement data."""
+    displacement: Vector2D
+    velocity: Optional[Vector2D] = None
+    
+    @property
+    def magnitude(self) -> float:
+        """Get displacement magnitude."""
+        return (self.displacement.x**2 + self.displacement.y**2)**0.5
+    
+    def in_deadzone(self, deadzone_threshold: float = 0.1) -> bool:
+        """Check if movement is within deadzone."""
+        return self.magnitude < deadzone_threshold
+    
+    def is_significant(self, min_threshold: float = 0.05) -> bool:
+        """Check if movement is significant enough to process."""
+        return self.magnitude >= min_threshold
+
+
+@dataclass
+class RotationVector:
+    """Head rotation data with strength values."""
+    tilt: float = 0.0    # -1.0 to 1.0 (left to right)
+    turn: float = 0.0    # -1.0 to 1.0 (left to right)  
+    nod: float = 0.0     # -1.0 to 1.0 (down to up)
+    
+    @property
+    def magnitude(self) -> float:
+        """Get overall rotation magnitude."""
+        return (self.tilt**2 + self.turn**2 + self.nod**2)**0.5
+
+
 class HandState(Enum):
     """Hand detection states"""
     NONE = "none"
@@ -17,17 +66,18 @@ class HandState(Enum):
 class GestureType(Enum):
     """Types of gestures supported by the system"""
     HAND_STATE = auto()
-    POSITION = auto()
+    POSITION_VECTOR = auto()
     ACTIVATION = auto()
     HEAD_TILT = auto()
     HEAD_TURN = auto()
     HEAD_NOD = auto()
+    HEAD_ORIENTATION = auto()
 
 
 class PositionGesture(Enum):
     """Position-based gestures relative to calibrated center"""
     CENTER = "center"
-    UP = "up"
+    UP = "up" 
     DOWN = "down"
     LEFT = "left"
     RIGHT = "right"
@@ -70,6 +120,10 @@ class ControlState:
     # All detected gestures with confidence scores
     all_gestures: Optional[List[GestureResult]] = None
 
+    # NEW: Vector-based movement data
+    movement_vector: Optional[MovementVector] = None
+    rotation_vector: Optional[RotationVector] = None
+
     # Debug information (optional)
     debug_info: Optional[Dict[str, Any]] = None
 
@@ -102,6 +156,15 @@ class CameraFrame:
     timestamp: Optional[float] = None
     frame_id: Optional[int] = None
     face_landmarks: Optional[List[Tuple[float, float, float]]] = None
+
+
+@dataclass
+class FrameAnalysis:
+    """Analysis output for a processed camera frame."""
+    camera_frame: CameraFrame
+    gesture_results: List[GestureResult]
+    control_state: Optional[ControlState] = None
+    debug_info: Optional[Dict[str, Any]] = None
 
 
 @dataclass

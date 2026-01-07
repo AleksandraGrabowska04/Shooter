@@ -88,9 +88,12 @@ class GameController(IGameController):
                     self._recalibrate_callback()
             is_active = self._active
 
-            # 4. Extract Control Inputs
+            # 4. Extract Control Inputs - Use debug_info approach for consistency
             position_gesture = PositionGesture.CENTER
             special_action = None
+
+            movement_vector = self._gesture_processor.extract_movement_vector(gesture_data)
+            rotation_vector = self._gesture_processor.extract_rotation_vector(gesture_data)
 
             if is_active and hand_state == HandState.FIST:
                 position_gesture = self._gesture_processor.determine_position_gesture(
@@ -112,7 +115,13 @@ class GameController(IGameController):
                 special_action
             )
 
-            # 6. Construct Control State
+            # Debug logging for game mode ONLY 
+            if not self._debug_mode and is_active:
+                self.logger.debug(f"[GAME] Movement vector: {movement_vector}")
+                self.logger.debug(f"[GAME] Rotation vector: {rotation_vector}")
+                self.logger.debug(f"[GAME] Hand state: {hand_state}, Special action: {special_action}")
+                
+            # 6. Construct Control State - ENHANCED with vectors
             # Note: ControlState needs to support extra fields if you want to pass Head Gestures
             # deeper into the game engine. For now, we attach all_gestures.
             control_state = ControlState(
@@ -121,8 +130,19 @@ class GameController(IGameController):
                 status_message=status_message,
                 hand_state=hand_state,
                 primary_gesture=primary_gesture,
-                all_gestures=gesture_results
+                all_gestures=gesture_results,
+                movement_vector=movement_vector,
+                rotation_vector=rotation_vector
             )
+            
+            # Debug logging for game mode
+            if not self._debug_mode and is_active:  # Only log in game mode
+                if movement_vector:
+                    self.logger.debug(f"🎮 Movement: mag={movement_vector.magnitude:.3f}, deadzone={movement_vector.in_deadzone}")
+                if rotation_vector:
+                    self.logger.debug(f"🎮 Rotation: tilt={rotation_vector.tilt:.2f}, turn={rotation_vector.turn:.2f}, nod={rotation_vector.nod:.2f}")
+                if hand_state != HandState.NONE:
+                    self.logger.debug(f"🎮 Hand: {hand_state.value}")
 
             # 7. Apply Smoothing (to position/state)
             smoothed_state = self._control_smoother.apply_smoothing(
@@ -142,7 +162,9 @@ class GameController(IGameController):
                 status_message="Error processing gestures",
                 hand_state=HandState.NONE,
                 primary_gesture=None,
-                all_gestures=[]
+                all_gestures=[],
+                movement_vector=None,
+                rotation_vector=None
             )
 
     def set_debug_mode(self, enabled: bool) -> None:
