@@ -9,9 +9,10 @@ Architecture:
 - utils: Logging, exceptions, and utility functions
 
 Usage:
-    from hand_control import HandControlSystem, Config
+    from hand_control import HandControlSystem, ApplicationConfig
+    from hand_control.constants import DEFAULT_CAMERA_WIDTH
     
-    config = Config()
+    config = ApplicationConfig()
     system = HandControlSystem(config)
     
     with system:
@@ -25,6 +26,7 @@ from .core.config import ApplicationConfig
 from .core.types import ControlState, GestureResult
 from .core.system import HandControlSystem
 from .core.interfaces import IHandTracker, IGestureRecognizer, IGameController
+from . import constants
 
 # Main exports
 __all__ = [
@@ -38,5 +40,8 @@ __all__ = [
     'ControlState', 'GestureResult',
     
     # Interfaces  
-    'IHandTracker', 'IGestureRecognizer', 'IGameController'
+    'IHandTracker', 'IGestureRecognizer', 'IGameController',
+    
+    # Constants
+    'constants'
 ]

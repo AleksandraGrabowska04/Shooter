@@ -101,7 +101,7 @@ class TextRenderer:
     
     def draw_shoot_indication(self, frame: np.ndarray) -> None:
         """
-        Draw prominent shoot indication in center of frame.
+        Draw prominent action indication in center of frame.
         
         Args:
             frame: OpenCV frame to draw on
@@ -110,8 +110,8 @@ class TextRenderer:
             # Get frame dimensions
             h, w = frame.shape[:2]
             
-            # Draw prominent SHOOT indicator in center
-            text = "SHOOT!"
+            # Draw prominent ACTION indicator in center
+            text = "ACTION"
             font_scale = 1.2
             thickness = 2
             

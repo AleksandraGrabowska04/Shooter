@@ -1,55 +1,83 @@
-# Shooter
+# Hand Control Orb Collector
 
-Simple 2D shooter: control crosshair with your hand (via webcam & MediaPipe), shoot zombies before they reach you.
+A gesture-controlled orb collection game using computer vision and hand tracking. Move the drone with your hand, make a fist to trigger a pulse, and use head movements to change modes and recharge energy.
 
-## Quick Start
+## Quick Setup
+
+### Prerequisites
+- Python 3.11+
+- Camera (built-in or USB webcam)
+
+### Installation
 
 ```bash
+# Clone repository
+git clone <repository-url>
+cd Shooter
+
+# Create virtual environment
 python3.11 -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
 source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-python run.py --debug
 ```
 
-## Requirements
+## How to Play
 
-- Python 3.11+
-- Camera (webcam)
+### Launch Game
+```bash
+python play.py          # Quick start
+python main.py game     # Full game with options
+python main.py debug    # Debug mode with visual feedback
+```
 
+### Gesture Controls
+- **Move**: Move your hand to steer the drone
+- **Pulse**: Make a fist to emit a pulse
+- **Change Mode**: Tilt head left/right to cycle pulse modes
+- **Recharge**: Nod head up/down to recharge energy
+- **Rotate**: Turn head to rotate the drone
 
+Inputs use a deadzone so small movements are ignored until you cross the threshold.
 
-## Main Gestures
+### Keyboard Fallback
+When gesture recognition is unavailable or disabled:
+- **WASD / Arrow Keys**: Move
+- **Space**: Pulse
+- **R**: Recharge
+- **Q / E**: Change mode
+- **P**: Pause
+- **ESC**: Quit game
 
-- **Palm rotation around axis** — activates/deactivates control (toggle ON/OFF)
-- **Hand movement relative to calibration center** — moves the crosshair (virtual joystick)
-- **Fist gesture** — shoots
-- **Head rotation (left/right/tilt/nod)** — auxiliary control (future/optional)
+## Additional Options
 
+```bash
+# Performance settings
+python main.py game --fps 30              # Set target FPS
+python main.py game --resolution 640 480  # Set camera resolution
 
-## Usage
+# Camera selection
+python main.py game --camera-index 1      # Use different camera
 
-1. Clone the repo & set up the virtual environment (see Quick Start)
-2. Run: `python run.py --debug`
-3. Show your hand to the camera
-4. Rotate your palm to toggle control ON/OFF (activation)
-5. Move your hand to control the crosshair
-6. Make a fist to shoot
-7. (Optional) Use head rotation for auxiliary control
-8. Press ESC to exit
-
-## Options
-
-- `python run.py --help` — all options
-- `--camera-id N` — select camera
-- `--fps N` — set FPS
-- `--resolution W H` — set resolution
+# Debug mode
+python main.py debug                      # Visual debug information
+python main.py monitor                    # Camera preview with minimal overlays
+```
 
 ## Troubleshooting
 
-- Use Python 3.11, activate venv
-- Try different camera id if not working
-- Lower resolution for better performance
+**Camera not detected:**
+```bash
+python main.py debug --camera-index 1   # Try different camera
+```
 
-## Config
-
-Edit `hand_control/core/config.py` for advanced settings (sensitivity, camera, UI).
+**Low performance:**
+```bash
+python main.py game --fps 20 --resolution 480 360
+```

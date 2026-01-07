@@ -4,13 +4,14 @@ Configuration for gesture detection strategies.
 
 from dataclasses import dataclass, field
 from typing import Optional
+from ...constants import POSITION_STEP, FIST_THRESHOLD
 
 
 @dataclass
 class PositionStrategyConfig:
     """Configuration for position detection strategy."""
     # Quantization settings
-    position_step: float = 5.0  # Pixels for position quantization
+    position_step: float = POSITION_STEP  # Pixels for position quantization
     
     # Distance limits
     max_distance_from_calibration: float = 100.0  # Maximum allowed distance from calibration point (pixels)
@@ -58,6 +59,17 @@ class MotionStrategyConfig:
 
 
 @dataclass
+class HeadOrientationStrategyConfig:
+    """Configuration for head orientation detection."""
+    tilt_threshold_deg: float = 7.0        # Minimum roll angle (degrees)
+    turn_threshold_ratio: float = 0.12     # Nose offset relative to face width
+    nod_threshold_ratio: float = 0.10      # Pitch ratio relative to face width
+    turn_gain: float = 1.6                 # Boost yaw to reduce head turn range
+    tilt_gain: float = 1.0                 # Optional tilt sensitivity scaling
+    nod_gain: float = 1.0                  # Optional nod sensitivity scaling
+
+
+@dataclass
 class FistStrategyConfig:
     """Configuration for fist detection strategy."""
     # Detection settings
@@ -81,4 +93,5 @@ class StrategiesConfig:
     orientation: OrientationStrategyConfig = field(default_factory=OrientationStrategyConfig)
     shoot: ShootStrategyConfig = field(default_factory=ShootStrategyConfig)
     motion: MotionStrategyConfig = field(default_factory=MotionStrategyConfig)
+    head: HeadOrientationStrategyConfig = field(default_factory=HeadOrientationStrategyConfig)
     fist: FistStrategyConfig = field(default_factory=FistStrategyConfig)

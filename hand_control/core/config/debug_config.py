@@ -3,13 +3,14 @@ Configuration for debug and development settings.
 """
 
 from dataclasses import dataclass
+from ...constants import POSITION_STEP
 
 
 @dataclass
 class QuantizationDebugConfig:
     """Configuration for quantization debugging."""
     # Quantization settings for debug display
-    position_step: float = 5.0  # Same as recognizer for consistency
+    position_step: float = POSITION_STEP  # Same as recognizer for consistency
     
     # Debug output control
     enable_landmark_quantization: bool = True

@@ -96,9 +96,9 @@ class StatusMessageGenerator:
         if position_gesture != PositionGesture.CENTER:
             parts.append(f"{position_gesture.name}")  # e.g. RIGHT, UP
 
-        # Special Action (Shoot)
+        # Special Action (Primary)
         if special_action == "SHOOT":
-            parts.append("[SHOOT]")
+            parts.append("[ACTION]")
 
         # Head Gestures
         head_msg = self._get_head_status(gesture_data)

@@ -5,7 +5,7 @@ This module provides all abstract interfaces that define the contracts
 for different components of the hand control system in a modular way.
 """
 
-# Import all interfaces for backward compatibility
+# Convenience re-exports for shared interfaces
 from .interfaces import (
     IHandTracker,
     IGestureRecognizer,

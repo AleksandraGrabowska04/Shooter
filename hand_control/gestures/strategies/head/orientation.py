@@ -1,7 +1,7 @@
 from ..base import GestureDetectionStrategy
 from typing import List, Dict, Tuple
 import math
-from ....core.types import GestureResult, CalibrationData, GestureType
+from ....core.types import GestureResult, CalibrationData, GestureType, RotationVector
 from ....core.config import ApplicationConfig
 from ....utils.math_utils import quantize_value, clamp_confidence
 # Assuming StrategiesConfig exists and has head_orientation settings,
@@ -147,4 +147,48 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
                     "debug": pitch_delta
                 }
             ))
+
+        # Add combined rotation vector result AFTER individual results
+        # Normalize values to -1.0 to 1.0 range for RotationVector
+        normalized_tilt = max(-1.0, min(1.0, roll_angle / 45.0)) if abs(roll_angle) > self.tilt_threshold else 0.0
+        normalized_turn = yaw_ratio if abs(yaw_ratio) > self.turn_threshold else 0.0
+        normalized_nod = max(-1.0, min(1.0, pitch_delta / 0.3)) if abs(pitch_delta) > self.nod_threshold else 0.0
+        
+        # Create combined rotation vector
+        rotation_vector = RotationVector(
+            tilt=normalized_tilt,
+            turn=normalized_turn, 
+            nod=normalized_nod
+        )
+        
+        # Add combined result if there's any head movement
+        if abs(normalized_tilt) > 0 or abs(normalized_turn) > 0 or abs(normalized_nod) > 0:
+            # Calculate overall confidence as max of individual confidences
+            max_confidence = 0.0
+            
+            if abs(roll_angle) > self.tilt_threshold:
+                tilt_confidence = clamp_confidence(abs(roll_angle) / 45.0)
+                max_confidence = max(max_confidence, tilt_confidence)
+            
+            if abs(yaw_ratio) > self.turn_threshold:
+                excess = abs(yaw_ratio) - self.turn_threshold
+                turn_confidence = clamp_confidence(min(excess / self.turn_threshold, 1.0) + 0.5)
+                max_confidence = max(max_confidence, turn_confidence)
+                
+            if abs(pitch_delta) > self.nod_threshold:
+                nod_confidence = clamp_confidence(abs(pitch_delta) / 0.3)
+                max_confidence = max(max_confidence, nod_confidence)
+            
+            results.append(GestureResult(
+                gesture_type=GestureType.HEAD_ORIENTATION,
+                confidence=max_confidence,
+                data={
+                    'rotation_vector': rotation_vector,
+                    # Keep individual values for UI and downstream mapping
+                    'tilt': normalized_tilt,
+                    'turn': normalized_turn,
+                    'nod': normalized_nod
+                }
+            ))
+        
         return results

@@ -1,7 +1,7 @@
 from ..base import GestureDetectionStrategy
 from typing import Dict, Tuple, List
 import math
-from ....core.types import CalibrationData, GestureResult, GestureType, PositionGesture
+from ....core.types import CalibrationData, GestureResult, GestureType, PositionGesture, MovementVector, Vector2D
 from ....core.config import ApplicationConfig
 from ....core.config.strategies_config import StrategiesConfig
 from ....utils.math_utils import quantize_value
@@ -21,9 +21,12 @@ class HandPositionStrategy(GestureDetectionStrategy):
             if not calibration.is_calibrated or "WRIST" not in landmarks:
                 # Default to CENTER if not ready
                 return [GestureResult(
-                    gesture_type=GestureType.POSITION,
+                    gesture_type=GestureType.POSITION_VECTOR,
                     confidence=1.0,
-                    data={'position_gesture': PositionGesture.CENTER}
+                    data={
+                        'movement_vector': MovementVector(displacement=Vector2D(0.0, 0.0)),
+                        'position_gesture': PositionGesture.CENTER
+                    }
                 )]
 
             if not calibration.reference_position:
@@ -89,14 +92,18 @@ class HandPositionStrategy(GestureDetectionStrategy):
                 # Keep the calculated direction, don't force CENTER!
                 # But maybe cap confidence at 1.0
 
+            # 7. Create movement vector and include directional info
+            movement_vector = MovementVector(displacement=Vector2D(dx, dy))
+
             return [GestureResult(
-                gesture_type=GestureType.POSITION,
+                gesture_type=GestureType.POSITION_VECTOR,
                 confidence=confidence,
                 data={
-                    'position_gesture': position_gesture,
+                    'movement_vector': movement_vector,
                     'displacement': (dx, dy),
                     'distance': distance,
-                    'out_of_range': is_out_of_range
+                    'out_of_range': is_out_of_range,
+                    'position_gesture': position_gesture
                 }
             )]
 

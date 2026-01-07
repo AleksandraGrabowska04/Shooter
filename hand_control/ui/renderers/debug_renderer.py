@@ -75,7 +75,8 @@ class DebugRenderer:
         # Special action (e.g. SHOOT)
         special = debug_info.get('special', None)
         if special:
-            lines.append(f"Special: {special}")
+            label = "ACTION" if special == "SHOOT" else special
+            lines.append(f"Special: {label}")
 
         # Head gestures summary
         head = debug_info.get('head', None)

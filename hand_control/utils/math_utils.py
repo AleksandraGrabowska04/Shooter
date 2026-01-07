@@ -3,9 +3,10 @@ Mathematical utility functions for gesture processing.
 """
 
 from typing import Dict, Tuple, Any, Optional
+from ..constants import POSITION_STEP
 
 
-def quantize_landmarks(landmarks: Dict[str, Any], position_step: float = 5.0) -> Dict[str, Any]:
+def quantize_landmarks(landmarks: Dict[str, Any], position_step: float = POSITION_STEP) -> Dict[str, Any]:
     """
     Quantize landmarks to reduce jittering in gesture detection.
     
