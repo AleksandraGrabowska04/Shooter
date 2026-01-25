@@ -1,0 +1,65 @@
+from game_objects.weapon import Weapon
+from meshes.instanced_quad_mesh import InstancedQuadMesh
+from meshes.weapon_mesh import WeaponMesh
+from meshes.old_level_mesh import LevelMesh
+from meshes.test_mesh import TestMesh
+from game_objects.hud import HUD
+
+class Scene:
+    def __init__(self, eng):
+        self.eng = eng
+        self.quad = TestMesh(self.eng.app,self.eng.shader_program.test)
+        self.level_mesh = LevelMesh(self.eng)
+
+        self.hud = HUD(eng)
+
+        # door objects
+        self.doors = self.eng.level_map.door_map.values()
+
+        # item objects
+        self.items = self.eng.level_map.item_map.values()
+
+        self.npc = self.eng.level_map.npc_map.values()
+
+        self.weapon = Weapon(eng)
+
+        # door mesh
+        self.instanced_door_mesh = InstancedQuadMesh(
+            self.eng, self.doors, self.eng.shader_program.instanced_door
+        )
+
+        # item mesh
+        self.instanced_item_mesh = InstancedQuadMesh(
+            self.eng, self.items, self.eng.shader_program.instanced_billboard
+        )
+
+        # hud mesh
+        self.instanced_hud_mesh = InstancedQuadMesh(
+            eng, self.hud.objects, eng.shader_program.instanced_hud
+        )
+
+        self.instanced_npc_mesh = InstancedQuadMesh(
+            eng, self.npc, eng.shader_program.instanced_billboard
+        )
+
+        self.weapon_mesh = WeaponMesh(eng, eng.shader_program.weapon, self.weapon)
+
+    def update(self):
+        for door in self.doors:
+            door.update()
+        for npc in self.npc:
+            npc.update()
+        self.hud.update()
+        self.weapon.update()
+
+    def render(self):
+        self.quad.render()
+        self.level_mesh.render()
+        self.instanced_door_mesh.render()
+        self.instanced_item_mesh.render()
+        # hud
+        self.instanced_hud_mesh.render()
+        # npc
+        self.instanced_npc_mesh.render()
+        # weapon
+        self.weapon_mesh.render()
