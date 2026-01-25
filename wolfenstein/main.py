@@ -67,7 +67,7 @@ class Game:
             if event.type == self.sound_event:
                 self.sound_trigger = True
             #
-            self.engine.handle_events(event=event)
+            # self.engine.handle_events(event=event)
 
     def run(self):
         while self.is_running:

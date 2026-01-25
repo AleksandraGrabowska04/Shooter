@@ -5,6 +5,7 @@ from shader_program import ShaderProgram
 from textures import Textures
 from ray_casting import RayCasting
 from path_finding import PathFinder
+from input_manager import InputManager
 
 class Engine:
     def __init__(self, app):
@@ -14,6 +15,8 @@ class Engine:
 
         self.textures = Textures(self)
         # self.sound = Sound()
+
+        self.input = InputManager()
 
         # self.player_attribs = PlayerAttribs()
         self.player: Player = None
@@ -48,10 +51,15 @@ class Engine:
         #
         self.level_map.npc_map = new_npc_map
 
-    def handle_events(self, event):
-        self.player.handle_events(event=event)
+    # def handle_events(self, event):
+    #     self.player.handle_events(event=event)
 
     def update(self):
+        self.input.update()
+
+        if self.input.quit:
+            self.app.running = False
+
         self.update_npc_map()
         self.player.update()
         self.shader_program.update()

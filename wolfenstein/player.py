@@ -1,14 +1,15 @@
-import pygame
-
+import pygame  # możesz to potem wywalić całkiem, jak nic już nie będzie używać pg
 from camera import Camera
 from settings import *
 import random
 from itertools import cycle
 
+
 class Player(Camera):
     def __init__(self, eng, position=PLAYER_POS, yaw=0, pitch=0):
         self.app = eng.app
         self.eng = eng
+        self.input = eng.input  # <<< JEDYNE źródło inputu
         super().__init__(position, yaw, pitch)
 
         # these maps will update when instantiated LevelMap
@@ -56,36 +57,54 @@ class Player(Camera):
 
         del self.item_map[self.tile_pos]
 
-    def handle_events(self, event):
-        if event.type == pg.KEYDOWN:
-            if event.key == KEYS['INTERACT']:
-                self.interact_with_door()
+    # <<< CAŁY INPUT JEST TU
+    def handle_input(self):
+        # interakcja
+        if self.input.key_down('INTERACT'):
+            self.interact_with_door()
 
-            # switch weapon by keys
-            if event.key == KEYS['WEAPON_1']:
-                self.switch_weapon(weapon_id=ID.KNIFE_0)
-            elif event.key == KEYS['WEAPON_2']:
-                self.switch_weapon(weapon_id=ID.PISTOL_0)
-            if event.key == KEYS['WEAPON_3']:
-                self.switch_weapon(weapon_id=ID.RIFLE_0)
+        # zmiana broni klawiszami
+        if self.input.key_down('WEAPON_1'):
+            self.switch_weapon(weapon_id=ID.KNIFE_0)
+        elif self.input.key_down('WEAPON_2'):
+            self.switch_weapon(weapon_id=ID.PISTOL_0)
+        elif self.input.key_down('WEAPON_3'):
+            self.switch_weapon(weapon_id=ID.RIFLE_0)
 
-        # switch weapon by mouse wheel
-        if event.type == pygame.MOUSEWHEEL:
+        # zmiana broni rolką myszy
+        if self.input.mouse_wheel:
             weapon_id = next(self.weapons_cycle)
             if self.weapons[weapon_id]:
                 self.switch_weapon(weapon_id=weapon_id)
 
-        # shooting
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                self.do_shot()
+        # strzał
+        if self.input.mouse_left_pressed():
+            self.do_shot()
+
+        # mysz – obrót kamery
+        if self.input.mouse_dx:
+            self.rotate_yaw(delta_x=self.input.mouse_dx * MOUSE_SENSITIVITY)
+        if self.input.mouse_dy:
+            self.rotate_pitch(delta_y=self.input.mouse_dy * MOUSE_SENSITIVITY)
+
+        # klawiatura – ruch
+        vel = PLAYER_SPEED * self.app.delta_time
+        next_step = glm.vec2()
+
+        if self.input.key_down('FORWARD'):
+            next_step += self.move_forward(vel)
+        if self.input.key_down('BACK'):
+            next_step += self.move_back(vel)
+        if self.input.key_down('STRAFE_R'):
+            next_step += self.move_right(vel)
+        if self.input.key_down('STRAFE_L'):
+            next_step += self.move_left(vel)
+
+        self.move(next_step=next_step)
 
     def check_health(self):
         if self.health <= 0:
-            # self.play(self.sound.player_death)
-            #
-            pg.time.wait(2000)
-            # self.eng.player_attribs = PlayerAttribs()
+            pygame.time.wait(2000)
             self.eng.new_game()
 
     def check_hit_on_npc(self):
@@ -110,19 +129,14 @@ class Player(Camera):
         if self.weapon_id == ID.KNIFE_0:
             self.is_shot = True
             self.check_hit_on_npc()
-            #
-            # self.play(self.sound.player_attack[ID.KNIFE_0])
 
         elif self.ammo:
             consumption = WEAPON_SETTINGS[self.weapon_id]['ammo_consumption']
             if not self.is_shot and self.ammo >= consumption:
                 self.is_shot = True
                 self.check_hit_on_npc()
-                #
                 self.ammo -= consumption
                 self.ammo = max(0, self.ammo)
-                #
-                # self.play(self.sound.player_attack[self.weapon_id])
 
     def interact_with_door(self):
         pos = self.position + self.forward
@@ -133,43 +147,10 @@ class Player(Camera):
             door.is_moving = True
 
     def update(self):
-        self.mouse_control()
-        self.keyboard_control()
-        # self.position.x += 0.1
-        # print(str(self.position) + "####"+ str(self.yaw))         # TODO: checkpoint
+        self.handle_input()
         super().update()
-
-
         self.update_tile_position()
         self.pick_up_item()
-
-    def mouse_control(self):
-        mouse_dx, mouse_dy = pg.mouse.get_rel()
-        if mouse_dx:
-            self.rotate_yaw(delta_x=mouse_dx * MOUSE_SENSITIVITY)
-        if mouse_dy:
-            self.rotate_pitch(delta_y=mouse_dy * MOUSE_SENSITIVITY)
-
-    def keyboard_control(self):
-        key_state = pg.key.get_pressed()
-        vel = PLAYER_SPEED * self.app.delta_time
-        next_step = glm.vec2()
-        #
-        if key_state[KEYS['FORWARD']]:
-            next_step += self.move_forward(vel)
-        if key_state[KEYS['BACK']]:
-            next_step += self.move_back(vel)
-            # next_step += self.move_up(vel)
-        if key_state[KEYS['STRAFE_R']]:
-            next_step += self.move_right(vel)
-        if key_state[KEYS['STRAFE_L']]:
-            next_step += self.move_left(vel)
-        # if key_state[KEYS['UP']]:
-        #     next_step += self.move_up(vel)
-        # if key_state[KEYS['DOWN']]:
-        #     next_step += self.move_down(vel)
-        #
-        self.move(next_step=next_step)
 
     def move(self, next_step):
         if not self.is_collide(dx=next_step[0]):

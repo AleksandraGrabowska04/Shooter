@@ -16,11 +16,9 @@ WIN_RES = glm.vec2(1280, 720)
 KEYS = {
     'FORWARD': pg.K_w,
     'BACK': pg.K_s,
-    'UP': pg.K_q,
-    'DOWN': pg.K_e,
     'STRAFE_L': pg.K_a,
     'STRAFE_R': pg.K_d,
-    'INTERACT': pg.K_f,
+    'INTERACT': pg.K_e,
     'WEAPON_1': pg.K_1,
     'WEAPON_2': pg.K_2,
     'WEAPON_3': pg.K_3,
