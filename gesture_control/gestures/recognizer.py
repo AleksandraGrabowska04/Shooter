@@ -194,3 +194,15 @@ class GestureRecognizer(IGestureRecognizer):
     def get_calibration_data(self) -> CalibrationData:
         """Get current calibration data."""
         return self.calibration_data
+
+    def get_head_neutral_status(self, face_landmarks: Optional[list]) -> Optional[Dict[str, object]]:
+        """Get head neutral status information for debug UI."""
+        if not face_landmarks:
+            return None
+        face_landmarks_dict = self._map_face_landmarks(face_landmarks)
+        if not face_landmarks_dict:
+            return None
+        return self.head_detector.compute_neutral_status(
+            face_landmarks_dict,
+            self.calibration_data
+        )

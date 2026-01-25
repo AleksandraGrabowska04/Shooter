@@ -83,4 +83,27 @@ class DebugRenderer:
         if head:
             lines.append(f"Head: {head}")
 
+        head_neutral = debug_info.get('head_neutral')
+        if isinstance(head_neutral, dict):
+            if not head_neutral.get("is_calibrated", True):
+                lines.append("Head neutral: calibrate (activation)")
+            else:
+                if head_neutral.get("is_neutral"):
+                    lines.append("Head neutral: OK")
+                else:
+                    adjustments = head_neutral.get("adjustments", [])
+                    if adjustments:
+                        lines.append(f"Head neutral: adjust {', '.join(adjustments)}")
+                    else:
+                        lines.append("Head neutral: adjust position")
+
+                deltas = head_neutral.get("deltas", {})
+                if deltas:
+                    tilt = deltas.get("tilt", 0.0)
+                    turn = deltas.get("turn", 0.0)
+                    nod = deltas.get("nod", 0.0)
+                    lines.append(
+                        f"Head offset: tilt {tilt:.1f}deg, turn {turn:.2f}, nod {nod:.2f}"
+                    )
+
         return lines

@@ -49,6 +49,56 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
             "pitch": pitch_ratio
         }
 
+    def compute_neutral_status(
+        self,
+        landmarks: Dict[str, Tuple[float, float, float]],
+        calibration: CalibrationData
+    ) -> Optional[Dict[str, object]]:
+        metrics = self._compute_face_metrics(landmarks)
+        if not metrics:
+            return None
+
+        if (not calibration or not calibration.is_calibrated or
+                calibration.head_roll_neutral is None or
+                calibration.head_yaw_neutral is None or
+                calibration.head_pitch_neutral is None):
+            return {
+                "is_calibrated": False
+            }
+
+        roll_angle, yaw_ratio, pitch_ratio = metrics
+        roll_delta = roll_angle - calibration.head_roll_neutral
+        yaw_delta = yaw_ratio - calibration.head_yaw_neutral
+        pitch_delta = pitch_ratio - calibration.head_pitch_neutral
+
+        within_tilt = abs(roll_delta) <= self.tilt_neutral_range
+        within_turn = abs(yaw_delta) <= self.turn_neutral_range
+        within_nod = abs(pitch_delta) <= self.nod_neutral_range
+
+        adjustments: List[str] = []
+        if not within_tilt:
+            adjustments.append("tilt left" if roll_delta > 0 else "tilt right")
+        if not within_turn:
+            adjustments.append("turn left" if yaw_delta > 0 else "turn right")
+        if not within_nod:
+            adjustments.append("nod up" if pitch_delta > 0 else "nod down")
+
+        return {
+            "is_calibrated": True,
+            "is_neutral": within_tilt and within_turn and within_nod,
+            "adjustments": adjustments,
+            "deltas": {
+                "tilt": roll_delta,
+                "turn": yaw_delta,
+                "nod": pitch_delta
+            },
+            "neutral_ranges": {
+                "tilt": self.tilt_neutral_range,
+                "turn": self.turn_neutral_range,
+                "nod": self.nod_neutral_range
+            }
+        }
+
     def detect(
         self,
         landmarks: Dict[str, Tuple[float, float, float]],

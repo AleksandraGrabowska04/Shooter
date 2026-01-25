@@ -98,6 +98,7 @@ class GesturePipeline:
 
             debug_info = self._collect_debug_info(
                 quantized_landmarks,
+                camera_frame.face_landmarks,
                 gesture_results,
                 control_state,
                 calibration_data
@@ -143,6 +144,7 @@ class GesturePipeline:
     def _collect_debug_info(
         self,
         landmarks,
+        face_landmarks,
         gesture_results,
         control_state,
         calibration_data
@@ -266,6 +268,8 @@ class GesturePipeline:
 
         debug_info["head"] = ", ".join(head_gestures)
         debug_info["head_strengths"] = head_strengths
+        if self.gesture_recognizer and hasattr(self.gesture_recognizer, "get_head_neutral_status"):
+            debug_info["head_neutral"] = self.gesture_recognizer.get_head_neutral_status(face_landmarks)
 
         rotation_vector = None
         if control_state and control_state.rotation_vector:
