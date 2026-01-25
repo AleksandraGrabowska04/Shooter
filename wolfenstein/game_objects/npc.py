@@ -158,14 +158,16 @@ class NPC(GameObject):
         self.frame %= self.num_frames
 
     def animate(self):
-        if not (self.is_animate and self.app.anim_trigger):
+        ticks = int(getattr(self.app, "anim_ticks", 0))
+        if not (self.is_animate and ticks > 0):
             return None
 
-        self.anim_counter += 1
-        if not self.is_alive: self.anim_counter += 1
-        #
-        if self.anim_counter >= self.anim_periods:
-            self.anim_counter = 0
+        self.anim_counter += ticks
+        if not self.is_alive:
+            self.anim_counter += ticks
+
+        while self.anim_counter >= self.anim_periods:
+            self.anim_counter -= self.anim_periods
             self.frame = (self.frame + 1) % self.num_frames
             #
             if self.is_hurt:
@@ -177,6 +179,7 @@ class NPC(GameObject):
                 self.to_drop_item()
                 #
                 # self.play(self.eng.sound.death[self.npc_id])
+                break
 
     def to_drop_item(self):
         if self.drop_item is not None:

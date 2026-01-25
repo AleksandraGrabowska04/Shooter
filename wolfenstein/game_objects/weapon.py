@@ -20,13 +20,19 @@ class Weapon:
         self.anim_counter = 0
 
     def update(self):
-        if self.player.is_shot:
-            self.anim_counter += 1
+        if not self.player.is_shot:
+            return
 
-            if self.anim_counter == WEAPON_ANIM_PERIODS:
-                self.anim_counter = 0
-                self.frame += 1
+        ticks = int(getattr(self.eng.app, "anim_ticks", 0))
+        if ticks <= 0:
+            return
 
-                if self.frame == WEAPON_NUM_FRAMES:
-                    self.frame = 0
-                    self.player.is_shot = False
+        self.anim_counter += ticks
+        while self.anim_counter >= WEAPON_ANIM_PERIODS:
+            self.anim_counter -= WEAPON_ANIM_PERIODS
+            self.frame += 1
+
+            if self.frame == WEAPON_NUM_FRAMES:
+                self.frame = 0
+                self.player.is_shot = False
+                break

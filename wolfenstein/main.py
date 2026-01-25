@@ -31,6 +31,7 @@ class Game:
         self.clock = pg.time.Clock()
         self.delta_time = 0
         self.time = 0
+        self.use_gestures = use_gestures
 
         pg.event.set_grab(True)   #locks cursor in window
         pg.mouse.set_visible(False)
@@ -40,7 +41,7 @@ class Game:
 
         self.engine = Engine(self, use_gesture_control=use_gestures)
 
-        self.anim_trigger = False
+        self.anim_ticks = 0
         self.anim_event = pg.USEREVENT + 0
         pg.time.set_timer(self.anim_event, SYNC_PULSE)
 
@@ -62,14 +63,17 @@ class Game:
         pg.display.flip()   # display new frame
 
     def handle_events(self):
-        self.anim_trigger, self.sound_trigger = False, False
+        self.anim_ticks, self.sound_trigger = 0, False
 
         for event in pg.event.get():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 self.is_running = False
             #
             if event.type == self.anim_event:
-                self.anim_trigger = True
+                if self.use_gestures:
+                    self.anim_ticks += 1
+                else:
+                    self.anim_ticks = 1
             #
             if event.type == self.sound_event:
                 self.sound_trigger = True
