@@ -33,9 +33,9 @@ class Player(Camera):
         self.gesture_active = False
         self.gesture_move = glm.vec2(0, 0)
         self.gesture_turn = 0.0
-        self.gesture_pitch = 0.0
         self.gesture_shoot = False
         self.gesture_weapon_change = 0
+        self.gesture_interact = False
 
     def update_tile_position(self):
         self.tile_pos = int(self.position.x), int(self.position.z)
@@ -172,8 +172,6 @@ class Player(Camera):
         mouse_dx, mouse_dy = pg.mouse.get_rel()
         if mouse_dx:
             self.rotate_yaw(delta_x=mouse_dx * MOUSE_SENSITIVITY)
-        if mouse_dy:
-            self.rotate_pitch(delta_y=mouse_dy * MOUSE_SENSITIVITY)
 
     def keyboard_control(self):
         key_state = pg.key.get_pressed()
@@ -201,16 +199,16 @@ class Player(Camera):
         active: bool,
         move=(0.0, 0.0),
         turn: float = 0.0,
-        pitch: float = 0.0,
         shoot: bool = False,
         weapon_change: int = 0,
+        interact: bool = False,
     ) -> None:
         self.gesture_active = active
         self.gesture_move = glm.vec2(move[0], move[1])
         self.gesture_turn = turn
-        self.gesture_pitch = pitch
         self.gesture_shoot = shoot
         self.gesture_weapon_change = weapon_change
+        self.gesture_interact = interact
 
     def _apply_gesture_control(self) -> None:
         vel = PLAYER_SPEED * self.app.delta_time
@@ -231,14 +229,14 @@ class Player(Camera):
 
         if self.gesture_turn:
             self.rotate_yaw(delta_x=self.gesture_turn * PLAYER_ROT_SPEED * self.app.delta_time)
-        if self.gesture_pitch:
-            self.rotate_pitch(delta_y=self.gesture_pitch * PLAYER_ROT_SPEED * self.app.delta_time)
 
         if self.gesture_weapon_change:
             self.cycle_weapon(self.gesture_weapon_change)
 
         if self.gesture_shoot:
             self.do_shot()
+        if self.gesture_interact:
+            self.interact_with_door()
 
     def move(self, next_step):
         if not self.is_collide(dx=next_step[0]):

@@ -13,8 +13,9 @@ from gesture_control.utils.factory import DefaultLogger
 from settings import (
     GESTURE_MOVE_SCALE,
     GESTURE_TURN_SCALE,
-    GESTURE_PITCH_SCALE,
     GESTURE_MOVE_DEADZONE,
+    GESTURE_ACTION_THRESHOLD,
+    GESTURE_ACTION_COOLDOWN,
 )
 
 
@@ -28,14 +29,16 @@ class WolfensteinGestureConnector:
         self._running = False
         self._last_weapon_change_time = 0.0
         self._last_shot_time = 0.0
+        self._last_action_time = 0.0
 
         self.weapon_change_cooldown = 0.7
         self.shoot_cooldown = 0.25
         self.tilt_weapon_threshold = 0.35
         self.move_scale = GESTURE_MOVE_SCALE
         self.turn_scale = GESTURE_TURN_SCALE
-        self.pitch_scale = GESTURE_PITCH_SCALE
         self.move_deadzone = GESTURE_MOVE_DEADZONE
+        self.nod_action_threshold = GESTURE_ACTION_THRESHOLD
+        self.action_cooldown = GESTURE_ACTION_COOLDOWN
 
     def initialize(self) -> bool:
         if not self.system.initialize():
@@ -88,12 +91,9 @@ class WolfensteinGestureConnector:
             move_vec = (dx, dy)
 
         look_turn = 0.0
-        look_pitch = 0.0
         if control_state.rotation_vector:
             look_turn = float(control_state.rotation_vector.turn) * self.turn_scale
-            look_pitch = float(control_state.rotation_vector.nod) * self.pitch_scale
             look_turn = max(-1.0, min(1.0, look_turn))
-            look_pitch = max(-1.0, min(1.0, look_pitch))
 
         shoot = False
         current_time = time.time()
@@ -110,13 +110,21 @@ class WolfensteinGestureConnector:
                 weapon_change = 1 if tilt > 0 else -1
                 self._last_weapon_change_time = current_time
 
+        interact = False
+        if active and control_state.rotation_vector:
+            nod = float(control_state.rotation_vector.nod)
+            if (abs(nod) >= self.nod_action_threshold and
+                    current_time - self._last_action_time >= self.action_cooldown):
+                interact = True
+                self._last_action_time = current_time
+
         self._apply_gesture_input(
             active=active,
             move=move_vec,
             turn=look_turn,
-            pitch=look_pitch,
             shoot=shoot,
             weapon_change=weapon_change,
+            interact=interact,
         )
 
     def _apply_gesture_input(
@@ -124,9 +132,9 @@ class WolfensteinGestureConnector:
         active: bool,
         move: Tuple[float, float] = (0.0, 0.0),
         turn: float = 0.0,
-        pitch: float = 0.0,
         shoot: bool = False,
         weapon_change: int = 0,
+        interact: bool = False,
     ) -> None:
         player = self.engine.player
         if not player:
@@ -137,7 +145,7 @@ class WolfensteinGestureConnector:
             active=active,
             move=(move_x, move_y),
             turn=turn,
-            pitch=pitch,
             shoot=shoot,
             weapon_change=weapon_change,
+            interact=interact,
         )
