@@ -1,5 +1,5 @@
 """
-Lifecycle management component for the hand control system.
+Lifecycle management component for the gesture control system.
 """
 
 import time
@@ -12,7 +12,7 @@ from ..config import ApplicationConfig
 
 class LifecycleManager:
     """
-    Manages the lifecycle of the hand control system including startup, shutdown, and status tracking.
+    Manages the lifecycle of the gesture control system including startup, shutdown, and status tracking.
     """
     
     def __init__(self, config: ApplicationConfig, logger: ILogger):
@@ -39,14 +39,14 @@ class LifecycleManager:
         if not self.is_initialized:
             raise Exception("System not initialized. Call set_initialized() first.")
         
-        self.logger.info("Starting hand control system...")
+        self.logger.info("Starting gesture control system...")
         self.is_running = True
         self.start_time = time.time()
     
     def stop_system(self) -> None:
         """Stop the system and cleanup resources."""
         if self.is_running:
-            self.logger.info("Stopping hand control system...")
+            self.logger.info("Stopping gesture control system...")
             self.is_running = False
             
             # Cleanup components

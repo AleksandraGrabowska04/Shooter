@@ -1,5 +1,5 @@
 """
-Facade for integrating hand control with custom games.
+Facade for integrating gesture control with custom games.
 
 This module converts connector commands into typed events and
 exposes a small API that hides the low-level routing details.
@@ -11,8 +11,8 @@ import math
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
-from hand_control.core.interfaces import ILogger
-from hand_control.core.types import ControlState
+from gesture_control.core.interfaces import ILogger
+from gesture_control.core.types import ControlState
 
 from .connector import ControlConnector, GameCommand, InputDeadzoneConfig
 
@@ -84,7 +84,7 @@ class GameControlHandler:
 
 class GameControlFacade:
     """
-    Facade that connects hand control updates with a game handler.
+    Facade that connects gesture control updates with a game handler.
 
     It hides the command queue and threading details from callers.
     """

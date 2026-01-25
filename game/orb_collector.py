@@ -1,5 +1,5 @@
 """
-Orb Collector - Demo game for hand control integration.
+Orb Collector - Demo game for gesture control integration.
 
 Move a drone to collect energy orbs and avoid hazards.
 Fist triggers a pulse. Head tilt cycles pulse modes. Head nod recharges energy.
@@ -630,7 +630,7 @@ class OrbCollectorGame:
 
     def run(self) -> None:
         print("Starting Orb Collector")
-        print("Use hand gestures or keyboard controls if hand control is inactive")
+        print("Use hand gestures or keyboard controls if gesture control is inactive")
 
         while self.running:
             dt = self.clock.tick(FPS) / 1000.0

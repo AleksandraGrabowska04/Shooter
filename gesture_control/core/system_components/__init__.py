@@ -1,5 +1,5 @@
 """
-System management components for the hand control system.
+System management components for the gesture control system.
 
 This package contains modular components that manage different aspects of the system lifecycle.
 """
@@ -9,7 +9,7 @@ from .gesture_pipeline import GesturePipeline
 from .calibration_manager import CalibrationManager
 from .system_initializer import SystemInitializer
 from .lifecycle_manager import LifecycleManager
-from .hand_control_system import HandControlSystem
+from .gesture_control_system import GestureControlSystem
 
 __all__ = [
     'FrameProcessor',
@@ -17,5 +17,5 @@ __all__ = [
     'CalibrationManager', 
     'SystemInitializer',
     'LifecycleManager',
-    'HandControlSystem'
+    'GestureControlSystem'
 ]

@@ -1,5 +1,5 @@
 """
-Example of integrating the hand control system with a custom game.
+Example of integrating the gesture control system with a custom game.
 
 This example uses GameControlFacade to expose a small, clear API and
 hide the low-level command routing details.
@@ -9,15 +9,15 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Tuple
 
-from hand_control.core.config.application_config import ApplicationConfig
-from hand_control.core.types import (
+from gesture_control.core.config.application_config import ApplicationConfig
+from gesture_control.core.types import (
     ControlState,
     HandState,
     MovementVector,
     RotationVector,
     Vector2D,
 )
-from hand_control.utils.factory import DefaultLogger
+from gesture_control.utils.factory import DefaultLogger
 
 from game.control_facade import (
     ActionEvent,
@@ -230,7 +230,7 @@ def _print_intro() -> None:
     print("CUSTOM GAME FACADE EXAMPLE")
     print("=" * 50)
     print("This example shows how to use GameControlFacade.")
-    print("In real usage, connect your hand control system.")
+    print("In real usage, connect your gesture control system.")
     print("Press Ctrl+C to exit")
     print("=" * 50 + "\n")
 
@@ -255,7 +255,7 @@ def main() -> None:
         simulator.run()
 
         print(f"Simulation complete. Game status: {game.get_status()}")
-        print("To integrate with real hand control, call:")
+        print("To integrate with real gesture control, call:")
         print("  facade.update_control_state(control_state)")
         print("  where control_state comes from your gesture recognition.")
 

@@ -1,5 +1,5 @@
 """
-Frame processing component for the hand control system.
+Frame processing component for the gesture control system.
 """
 
 import cv2
@@ -100,7 +100,7 @@ class FrameProcessor:
             if self.renderer:
                 self._render_comprehensive_frame(analysis)
 
-            cv2.imshow("Hand Control", analysis.camera_frame.frame)
+            cv2.imshow("Gesture Control", analysis.camera_frame.frame)
 
             debug_frequency = self.performance_config.frame_processor.debug_frame_frequency
             if self.frame_count % debug_frequency == 0:

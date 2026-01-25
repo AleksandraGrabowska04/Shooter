@@ -1,5 +1,5 @@
 """
-Core package for hand control system.
+Core package for gesture control system.
 """
 
 from .config.application_config import ApplicationConfig
@@ -18,7 +18,7 @@ from .interfaces import (
     IHandTracker, IGestureRecognizer, IGameController,
     IVisualizationRenderer, ILogger, IComponentFactory
 )
-from .system import HandControlSystem, create_hand_control_system
+from .system import GestureControlSystem, create_gesture_control_system
 __all__ = [
     # Configuration
     'ApplicationConfig',
@@ -42,6 +42,6 @@ __all__ = [
     'IComponentFactory',
 
     # System
-    'HandControlSystem',
-    'create_hand_control_system'
+    'GestureControlSystem',
+    'create_gesture_control_system'
 ]

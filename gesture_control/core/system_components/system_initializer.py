@@ -1,5 +1,5 @@
 """
-System initialization component for the hand control system.
+System initialization component for the gesture control system.
 """
 
 from typing import Optional
@@ -43,7 +43,7 @@ class SystemInitializer:
             Exception: If initialization fails
         """
         try:
-            self.logger.info("Initializing hand control system components...")
+            self.logger.info("Initializing gesture control system components...")
             
             if not self.factory:
                 self.logger.error("No factory provided for component initialization")

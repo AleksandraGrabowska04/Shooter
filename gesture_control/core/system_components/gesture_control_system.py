@@ -1,5 +1,5 @@
 """
-Main hand control system coordinator.
+Main gesture control system coordinator.
 """
 
 import cv2
@@ -13,14 +13,14 @@ from .system_initializer import SystemInitializer
 from .lifecycle_manager import LifecycleManager
 
 
-class HandControlSystem:
+class GestureControlSystem:
     """
-    Main hand control system that coordinates all components.
+    Main gesture control system that coordinates all components.
     """
     
     def __init__(self, config: ApplicationConfig, logger: ILogger):
         """
-        Initialize the hand control system.
+        Initialize the gesture control system.
         
         Args:
             config: Application configuration
@@ -89,7 +89,7 @@ class HandControlSystem:
                         
                 self.game_controller.set_reset_calibration_callback(reset_calibration_callback)
             
-            self.logger.info("Hand control system initialized successfully")
+            self.logger.info("Gesture control system initialized successfully")
             return True
             
         except Exception as e:

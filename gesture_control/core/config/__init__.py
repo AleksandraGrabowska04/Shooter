@@ -1,5 +1,5 @@
 """
-Configuration system components for hand control application.
+Configuration system components for gesture control application.
 """
 
 from .camera_config import CameraConfig

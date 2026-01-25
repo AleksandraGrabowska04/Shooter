@@ -1,5 +1,5 @@
 """
-Calibration management component for the hand control system.
+Calibration management component for the gesture control system.
 """
 
 from typing import Optional

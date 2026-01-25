@@ -11,8 +11,8 @@ from typing import Optional, Callable, Dict, Any
 from threading import Thread, Lock
 import queue
 
-from hand_control.core.types import ControlState, HandState
-from hand_control.core.interfaces import ILogger
+from gesture_control.core.types import ControlState, HandState
+from gesture_control.core.interfaces import ILogger
 
 
 @dataclass(frozen=True)

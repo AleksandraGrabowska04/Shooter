@@ -1,8 +1,8 @@
 """
-Centralized constants for the hand control system.
+Centralized constants for the gesture control system.
 
 This module contains all configuration constants used across
-the hand control system to avoid duplication and make changes easier.
+the gesture control system to avoid duplication and make changes easier.
 """
 
 # Camera and MediaPipe constants

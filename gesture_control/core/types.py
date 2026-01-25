@@ -1,5 +1,5 @@
 """
-Core data types and enums for the hand control system.
+Core data types and enums for the gesture control system.
 """
 
 from dataclasses import dataclass

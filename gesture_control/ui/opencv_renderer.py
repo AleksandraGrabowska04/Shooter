@@ -1,5 +1,5 @@
 """
-OpenCV-based visualization renderer for hand control system.
+OpenCV-based visualization renderer for gesture control system.
 """
 
 import numpy as np

@@ -1,5 +1,5 @@
 """
-Game module for hand control system integration.
+Game module for gesture control system integration.
 """
 
 from .connector import ControlConnector

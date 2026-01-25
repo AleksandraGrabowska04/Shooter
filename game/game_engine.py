@@ -1,8 +1,8 @@
 """
-Game Engine - Orchestrates hand control system and game integration.
+Game Engine - Orchestrates gesture control system and game integration.
 
 This module provides the main game engine that coordinates between
-the hand control system and the game, managing the connector and
+the gesture control system and the game, managing the connector and
 running the complete integrated experience.
 """
 
@@ -10,15 +10,15 @@ import time
 import threading
 from typing import Optional
 
-from hand_control.core import create_hand_control_system, ApplicationConfig
-from hand_control.core.types import ControlState
-from hand_control.utils.factory import DefaultLogger
+from gesture_control.core import create_gesture_control_system, ApplicationConfig
+from gesture_control.core.types import ControlState
+from gesture_control.utils.factory import DefaultLogger
 from .connector import ControlConnector
 from .orb_collector import OrbCollectorGame
 
 class GameEngine:
     """
-    Main game engine that orchestrates hand control system and game.
+    Main game engine that orchestrates gesture control system and game.
     
     This class manages the complete integration between gesture recognition
     and game logic, providing a unified experience.
@@ -38,8 +38,8 @@ class GameEngine:
         # Initialize logger
         self.logger = DefaultLogger("GameEngine", config)
         
-        # Initialize hand control system
-        self.hand_control_system = create_hand_control_system(config, self.logger)
+        # Initialize gesture control system
+        self.control_system = create_gesture_control_system(config, self.logger)
         
         # Initialize connector
         self.connector = ControlConnector(self.logger)
@@ -47,8 +47,8 @@ class GameEngine:
         # Initialize game
         self.game: Optional[OrbCollectorGame] = None
         
-        # Threading for hand control
-        self.hand_control_thread: Optional[threading.Thread] = None
+        # Threading for gesture control
+        self.control_thread: Optional[threading.Thread] = None
         self.running = False
         
         self.logger.info(f"Game Engine initialized with mode: {game_mode}")
@@ -61,9 +61,9 @@ class GameEngine:
             True if initialization successful
         """
         try:
-            # Initialize hand control system
-            if not self.hand_control_system.initialize():
-                self.logger.error("Failed to initialize hand control system")
+            # Initialize gesture control system
+            if not self.control_system.initialize():
+                self.logger.error("Failed to initialize gesture control system")
                 return False
             
             # Initialize game
@@ -89,7 +89,7 @@ class GameEngine:
         """
         Run the complete integrated experience.
         
-        This starts both the hand control system and the game,
+        This starts both the gesture control system and the game,
         creating a seamless experience.
         """
         if not self.game:
@@ -99,12 +99,12 @@ class GameEngine:
         try:
             self.running = True
             
-            # Start hand control system in separate thread
-            self.hand_control_thread = threading.Thread(
-                target=self._run_hand_control,
+            # Start gesture control system in separate thread
+            self.control_thread = threading.Thread(
+                target=self._run_control_system,
                 daemon=True
             )
-            self.hand_control_thread.start()
+            self.control_thread.start()
             
             self.logger.info("🚀 Starting integrated game experience")
             
@@ -118,26 +118,26 @@ class GameEngine:
         finally:
             self.shutdown()
     
-    def _run_hand_control(self) -> None:
-        """Run hand control system in separate thread."""
+    def _run_control_system(self) -> None:
+        """Run gesture control system in separate thread."""
         try:
             # Custom run loop that sends updates to connector
-            if not self.hand_control_system.lifecycle_manager.is_initialized:
-                self.logger.error("Hand control system not initialized")
+            if not self.control_system.lifecycle_manager.is_initialized:
+                self.logger.error("Gesture control system not initialized")
                 return
             
-            self.hand_control_system.lifecycle_manager.start_system()
+            self.control_system.lifecycle_manager.start_system()
             
             # Check for calibration
             if self.config.require_calibration:
-                self.hand_control_system.calibration_manager.run_calibration()
+                self.control_system.calibration_manager.run_calibration()
             
             # Main processing loop
             while (self.running and 
-                   self.hand_control_system.lifecycle_manager.should_continue_running):
+                   self.control_system.lifecycle_manager.should_continue_running):
                 
                 # Process frame and get control state from shared pipeline
-                control_state = self._process_hand_control_frame()
+                control_state = self._process_control_frame()
                 
                 # Send control state to connector
                 if control_state:
@@ -146,25 +146,25 @@ class GameEngine:
                 # Small sleep to prevent CPU overload
                 time.sleep(0.01)
             
-            self.hand_control_system.lifecycle_manager.stop_system()
+            self.control_system.lifecycle_manager.stop_system()
             
         except Exception as e:
-            self.logger.error(f"Error in hand control thread: {e}")
+            self.logger.error(f"Error in control thread: {e}")
             self.running = False
     
-    def _process_hand_control_frame(self) -> Optional[ControlState]:
+    def _process_control_frame(self) -> Optional[ControlState]:
         """
-        Process a single hand control frame and return control state.
+        Process a single control frame and return control state.
         
         Returns:
             ControlState object or None if processing failed
         """
         try:
-            if not self.hand_control_system.frame_processor:
+            if not self.control_system.frame_processor:
                 return None
 
             # Use the same gesture pipeline as debug mode for consistent data
-            analysis = self.hand_control_system.frame_processor.analyze_frame()
+            analysis = self.control_system.frame_processor.analyze_frame()
             if analysis:
                 return analysis.control_state
 
@@ -237,13 +237,13 @@ class GameEngine:
             # Stop connector
             self.connector.stop()
             
-            # Stop hand control system
-            if self.hand_control_system:
-                self.hand_control_system.shutdown()
+            # Stop gesture control system
+            if self.control_system:
+                self.control_system.shutdown()
             
-            # Wait for hand control thread to finish
-            if self.hand_control_thread and self.hand_control_thread.is_alive():
-                self.hand_control_thread.join(timeout=2.0)
+            # Wait for control thread to finish
+            if self.control_thread and self.control_thread.is_alive():
+                self.control_thread.join(timeout=2.0)
             
             self.logger.info("Game engine shutdown completed")
             
@@ -255,14 +255,14 @@ class GameEngine:
         status = {
             'running': self.running,
             'game_mode': self.game_mode,
-            'hand_control_initialized': self.hand_control_system.is_initialized if self.hand_control_system else False,
+            'control_system_initialized': self.control_system.is_initialized if self.control_system else False,
             'connector_status': self.connector.get_status() if self.connector else {},
         }
         
         if self.game:
             status['game_stats'] = self.game.get_game_stats()
         
-        if self.hand_control_system:
-            status['hand_control_status'] = self.hand_control_system.get_status()
+        if self.control_system:
+            status['control_system_status'] = self.control_system.get_status()
         
         return status

@@ -1,5 +1,5 @@
 """
-Hand Control System
+Gesture Control System
 
 Architecture:
 - core: Core interfaces, data types, and configuration
@@ -9,11 +9,11 @@ Architecture:
 - utils: Logging, exceptions, and utility functions
 
 Usage:
-    from hand_control import HandControlSystem, ApplicationConfig
-    from hand_control.constants import DEFAULT_CAMERA_WIDTH
+    from gesture_control import GestureControlSystem, ApplicationConfig
+    from gesture_control.constants import DEFAULT_CAMERA_WIDTH
     
     config = ApplicationConfig()
-    system = HandControlSystem(config)
+    system = GestureControlSystem(config)
     
     with system:
         while True:
@@ -24,14 +24,14 @@ Usage:
 
 from .core.config import ApplicationConfig
 from .core.types import ControlState, GestureResult
-from .core.system import HandControlSystem
+from .core.system import GestureControlSystem
 from .core.interfaces import IHandTracker, IGestureRecognizer, IGameController
 from . import constants
 
 # Main exports
 __all__ = [
     # Main system
-    'HandControlSystem',
+    'GestureControlSystem',
     
     # Configuration
     'ApplicationConfig',

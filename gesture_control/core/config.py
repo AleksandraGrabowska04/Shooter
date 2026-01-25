@@ -1,5 +1,5 @@
 """
-Configuration system for hand control application.
+Configuration system for gesture control application.
 
 This module provides a modular configuration system with separate components
 for different aspects of the application (camera, gestures, UI, etc.).

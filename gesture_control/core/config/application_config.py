@@ -36,7 +36,7 @@ class UISettings:
     line_spacing: int = LINE_SPACING
     
     # Window settings
-    window_name: str = "Hand Control"
+    window_name: str = "Gesture Control"
     window_resizable: bool = True
 
 
@@ -45,7 +45,7 @@ class LoggingSettings:
     """Logging configuration embedded in ApplicationConfig"""
     level: str = "INFO"
     enable_file_logging: bool = False
-    log_file_path: str = "hand_control.log"
+    log_file_path: str = "gesture_control.log"
     enable_performance_logging: bool = False
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 

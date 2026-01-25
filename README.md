@@ -1,6 +1,6 @@
-# Hand Control Orb Collector
+# Gesture Control Orb Collector
 
-A gesture-controlled orb collection game using computer vision and hand tracking. Move the drone with your hand, make a fist to trigger a pulse, and use head movements to change modes and recharge energy.
+A gesture-controlled orb collection game using computer vision, hand tracking, and head movement. Move the drone with your hand, make a fist to trigger a pulse, and use head movements to change modes and recharge energy.
 
 ## Quick Setup
 

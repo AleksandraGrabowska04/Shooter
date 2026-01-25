@@ -1,8 +1,8 @@
 """
-Core interfaces for the hand control system components.
+Core interfaces for the gesture control system components.
 
 This package contains all abstract interfaces that define the contracts
-for different components of the hand control system.
+for different components of the gesture control system.
 """
 
 from .hand_tracker_interface import IHandTracker
