@@ -174,4 +174,6 @@ class CalibrationData:
     reference_position: Optional[Tuple[float, float, float]] = None
     reference_orientation: Optional[Dict[str, Any]] = None
     calibration_timestamp: Optional[float] = None
+    head_roll_neutral: Optional[float] = None
+    head_yaw_neutral: Optional[float] = None
     head_pitch_neutral: Optional[float] = None

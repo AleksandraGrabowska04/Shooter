@@ -20,9 +20,9 @@ class InputDeadzoneConfig:
     """Deadzone and activation thresholds for gesture-driven input."""
     movement_deadzone: float = 0.2
     movement_min_magnitude: float = 0.02
-    rotation_deadzone: float = 0.12
-    tilt_deadzone: float = 0.25
-    nod_deadzone: float = 0.25
+    rotation_deadzone: float = 0.08
+    tilt_deadzone: float = 0.18
+    nod_deadzone: float = 0.18
 
 
 class GameCommand:

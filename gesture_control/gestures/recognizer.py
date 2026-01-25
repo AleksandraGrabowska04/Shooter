@@ -121,12 +121,17 @@ class GestureRecognizer(IGestureRecognizer):
                 face_landmarks_dict[key] = face_landmarks[idx]
         return face_landmarks_dict
 
-    def calibrate(self, landmarks: dict) -> bool:
+    def calibrate(
+        self,
+        landmarks: dict,
+        face_landmarks: Optional[list] = None
+    ) -> bool:
         """
         Calibrate the recognizer with initial hand position.
 
         Args:
             landmarks: Initial hand landmarks for calibration
+            face_landmarks: Optional face landmarks for head neutral calibration
 
         Returns:
             True if calibration successful
@@ -163,6 +168,15 @@ class GestureRecognizer(IGestureRecognizer):
             # Mark as calibrated
             self.calibration_data.is_calibrated = True
             self.calibration_data.calibration_timestamp = time.time()
+
+            if face_landmarks:
+                face_landmarks_dict = self._map_face_landmarks(face_landmarks)
+                if face_landmarks_dict:
+                    neutral_pose = self.head_detector.compute_neutral_pose(face_landmarks_dict)
+                    if neutral_pose:
+                        self.calibration_data.head_roll_neutral = neutral_pose.get("roll")
+                        self.calibration_data.head_yaw_neutral = neutral_pose.get("yaw")
+                        self.calibration_data.head_pitch_neutral = neutral_pose.get("pitch")
             return True
 
         except Exception as e:

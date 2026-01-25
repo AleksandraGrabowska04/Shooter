@@ -30,12 +30,17 @@ class IGestureRecognizer(ABC):
         pass
     
     @abstractmethod
-    def calibrate(self, landmarks: dict) -> bool:
+    def calibrate(
+        self,
+        landmarks: dict,
+        face_landmarks: Optional[list] = None
+    ) -> bool:
         """
         Calibrate the recognizer with initial hand position.
         
         Args:
             landmarks: Initial hand landmarks for calibration
+            face_landmarks: Optional face landmarks for head neutral calibration
             
         Returns:
             True if calibration successful

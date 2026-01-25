@@ -1,15 +1,9 @@
 from ..base import GestureDetectionStrategy
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import math
 from ....core.types import GestureResult, CalibrationData, GestureType, RotationVector
 from ....core.config import ApplicationConfig
 from ....utils.math_utils import quantize_value, clamp_confidence
-# Assuming StrategiesConfig exists and has head_orientation settings,
-# otherwise we use defaults in __init__
-try:
-    from ....core.config.strategies_config import StrategiesConfig
-except ImportError:
-    StrategiesConfig = None
 
 
 class HeadOrientationStrategy(GestureDetectionStrategy):
@@ -20,22 +14,17 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
 
     def __init__(self, config: ApplicationConfig):
         super().__init__(config)
+        head_config = config.strategies.head
+        self.tilt_neutral_range = head_config.tilt_threshold_deg
+        self.turn_neutral_range = head_config.turn_threshold_ratio
+        self.nod_neutral_range = head_config.nod_threshold_ratio
+        self.turn_gain = head_config.turn_gain
+        self.tilt_gain = head_config.tilt_gain
+        self.nod_gain = head_config.nod_gain
 
-        # Load config or set defaults
-        if StrategiesConfig:
-            self.strategies_config = StrategiesConfig()
-            # Assuming structure: self.strategies_config.head.tilt_threshold etc.
-            # Using safe defaults if specific config structure isn't known yet
-            self.tilt_threshold = getattr(
-                self.strategies_config, 'head_tilt_threshold', 10.0)  # degrees
-            self.turn_threshold = getattr(
-                self.strategies_config, 'head_turn_threshold_ratio', 0.20)  # 20% of face width
-            self.nod_threshold = getattr(
-                self.strategies_config, 'head_nod_threshold_ratio', 0.15)  # 15% of face width
-        else:
-            self.tilt_threshold = 10.0
-            self.turn_threshold = 0.20
-            self.nod_threshold = 0.15
+        self.tilt_scale = max(self.tilt_neutral_range * 3.0, 12.0)
+        self.turn_scale = max(self.turn_neutral_range * 3.0, 0.18)
+        self.nod_scale = max(self.nod_neutral_range * 3.0, 0.15)
 
     def _get_angle(self, p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
         """
@@ -46,97 +35,96 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
         angle_rad = math.atan2(dy, dx)
         return math.degrees(angle_rad)
 
-    def detect(self, landmarks: Dict[str, Tuple[float, float, float]], calibration: CalibrationData) -> List[GestureResult]:
+    def compute_neutral_pose(
+        self,
+        landmarks: Dict[str, Tuple[float, float, float]]
+    ) -> Optional[Dict[str, float]]:
+        metrics = self._compute_face_metrics(landmarks)
+        if not metrics:
+            return None
+        roll_angle, yaw_ratio, pitch_ratio = metrics
+        return {
+            "roll": roll_angle,
+            "yaw": yaw_ratio,
+            "pitch": pitch_ratio
+        }
+
+    def detect(
+        self,
+        landmarks: Dict[str, Tuple[float, float, float]],
+        calibration: CalibrationData
+    ) -> List[GestureResult]:
         results = []
-        required_keys = ["LEFT_EAR", "RIGHT_EAR", "NOSE"]
-        if not all(k in landmarks for k in required_keys):
+        metrics = self._compute_face_metrics(landmarks)
+        if not metrics:
             return results
 
-        left_ear = landmarks["LEFT_EAR"]
-        right_ear = landmarks["RIGHT_EAR"]
-        nose = landmarks["NOSE"]
+        roll_angle, yaw_ratio, pitch_ratio = metrics
 
-        # 1. Calculate face width (distance between ears)
-        # Used to normalize offsets so detection works at any distance
-        dx = right_ear[0] - left_ear[0]
-        dy = right_ear[1] - left_ear[1]
-        face_width = math.sqrt(dx*dx + dy*dy)
+        roll_neutral = (
+            calibration.head_roll_neutral
+            if calibration and calibration.head_roll_neutral is not None
+            else 0.0
+        )
+        yaw_neutral = (
+            calibration.head_yaw_neutral
+            if calibration and calibration.head_yaw_neutral is not None
+            else 0.0
+        )
+        pitch_neutral = (
+            calibration.head_pitch_neutral
+            if calibration and calibration.head_pitch_neutral is not None
+            else 0.0
+        )
 
-        if face_width == 0:
-            return results
+        roll_delta = roll_angle - roll_neutral
+        yaw_delta = yaw_ratio - yaw_neutral
+        pitch_delta = pitch_ratio - pitch_neutral
 
-        # --- ROLL (Head Tilt) ---
-        # Angle of the line connecting ears
-        roll_angle = self._get_angle(left_ear[:2], right_ear[:2])
-        roll_angle = quantize_value(roll_angle, 0.5)
+        if abs(roll_delta) <= self.tilt_neutral_range:
+            roll_delta = 0.0
+        if abs(yaw_delta) <= self.turn_neutral_range:
+            yaw_delta = 0.0
+        if abs(pitch_delta) <= self.nod_neutral_range:
+            pitch_delta = 0.0
 
-        if abs(roll_angle) > self.tilt_threshold:
-            # If Y points down:
-            # angle > 0 means right ear is lower (larger Y) -> TILT RIGHT
-            # angle < 0 means left ear is lower -> TILT LEFT
-            direction = "right" if roll_angle > 0 else "left"
-            confidence = clamp_confidence(abs(roll_angle) / 45.0)
-            # Pass raw roll_angle as value, normalization for UI will be done in debug_info
+        roll_delta *= self.tilt_gain
+        yaw_delta *= self.turn_gain
+        pitch_delta *= self.nod_gain
+
+        if abs(roll_delta) > 0:
+            direction = "right" if roll_delta > 0 else "left"
+            confidence = self._axis_confidence(abs(roll_delta), self.tilt_scale)
             results.append(GestureResult(
                 gesture_type=GestureType.HEAD_TILT,
                 confidence=confidence,
                 data={
                     "direction": direction,
-                    "angle": roll_angle,
-                    "value": roll_angle,
-                    "debug": roll_angle
+                    "angle": roll_delta,
+                    "value": roll_delta,
+                    "debug": roll_angle,
+                    "neutral": roll_neutral
                 }
             ))
 
-        # --- YAW (Head Turn) ---
-        # Horizontal position of nose relative to center of ears
-        mid_x = (left_ear[0] + right_ear[0]) / 2
-        raw_yaw = nose[0] - mid_x
-
-        # Normalize by face width
-        yaw_ratio = raw_yaw / face_width
-        yaw_ratio = quantize_value(yaw_ratio, 0.01)
-
-        if abs(yaw_ratio) > self.turn_threshold:
-            # Nose moves left (smaller X) -> ratio negative -> LEFT
-            direction = "left" if yaw_ratio < 0 else "right"
-            # Confidence based on how much we exceeded threshold
-            excess = abs(yaw_ratio) - self.turn_threshold
-            conf = clamp_confidence(
-                min(excess / (self.turn_threshold), 1.0) + 0.5)
+        if abs(yaw_delta) > 0:
+            direction = "left" if yaw_delta < 0 else "right"
+            confidence = self._axis_confidence(abs(yaw_delta), self.turn_scale)
             results.append(GestureResult(
                 gesture_type=GestureType.HEAD_TURN,
-                confidence=conf,
+                confidence=confidence,
                 data={
                     "direction": direction,
-                    "ratio": yaw_ratio,
-                    "value": yaw_ratio
+                    "ratio": yaw_delta,
+                    "value": yaw_delta,
+                    "debug": yaw_ratio,
+                    "neutral": yaw_neutral
                 }
             ))
 
-        # --- PITCH (Head Nod) ---
-        # Vertical position of nose relative to center of ears
-        mid_y = (left_ear[1] + right_ear[1]) / 2
-        raw_pitch = nose[1] - mid_y
-
-        # Normalize by face width (approximation, as face height varies more, but width is stable reference)
-        pitch_ratio = raw_pitch / face_width
-        pitch_ratio = quantize_value(pitch_ratio, 0.01)
-
-        # Pitch ratio usually has an offset even when neutral (nose is below ears).
-        # Ideally, this should be calibrated relative to 'neutral' pose in CalibrationData.
-        # Here we use a relative delta if calibration exists, otherwise raw heuristic.
-        reference_pitch = 0.0
-        if calibration and calibration.head_pitch_neutral:
-            # Use calibration value if available
-            reference_pitch = calibration.head_pitch_neutral
-
-        # Large positive delta -> looking down, small or negative -> looking up
-        pitch_delta = pitch_ratio - reference_pitch
-        if abs(pitch_delta) > self.nod_threshold:
+        if abs(pitch_delta) > 0:
             direction = "down" if pitch_delta > 0 else "up"
-            confidence = clamp_confidence(abs(pitch_delta) / 0.3)
-            # Pass raw pitch_delta as value, normalization for UI will be done in debug_info
+            confidence = self._axis_confidence(abs(pitch_delta), self.nod_scale)
             results.append(GestureResult(
                 gesture_type=GestureType.HEAD_NOD,
                 confidence=confidence,
@@ -144,15 +132,16 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
                     "direction": direction,
                     "delta": pitch_delta,
                     "value": pitch_delta,
-                    "debug": pitch_delta
+                    "debug": pitch_ratio,
+                    "neutral": pitch_neutral
                 }
             ))
 
         # Add combined rotation vector result AFTER individual results
         # Normalize values to -1.0 to 1.0 range for RotationVector
-        normalized_tilt = max(-1.0, min(1.0, roll_angle / 45.0)) if abs(roll_angle) > self.tilt_threshold else 0.0
-        normalized_turn = yaw_ratio if abs(yaw_ratio) > self.turn_threshold else 0.0
-        normalized_nod = max(-1.0, min(1.0, pitch_delta / 0.3)) if abs(pitch_delta) > self.nod_threshold else 0.0
+        normalized_tilt = max(-1.0, min(1.0, roll_delta / self.tilt_scale))
+        normalized_turn = max(-1.0, min(1.0, yaw_delta / self.turn_scale))
+        normalized_nod = max(-1.0, min(1.0, pitch_delta / self.nod_scale))
         
         # Create combined rotation vector
         rotation_vector = RotationVector(
@@ -163,22 +152,23 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
         
         # Add combined result if there's any head movement
         if abs(normalized_tilt) > 0 or abs(normalized_turn) > 0 or abs(normalized_nod) > 0:
-            # Calculate overall confidence as max of individual confidences
             max_confidence = 0.0
-            
-            if abs(roll_angle) > self.tilt_threshold:
-                tilt_confidence = clamp_confidence(abs(roll_angle) / 45.0)
-                max_confidence = max(max_confidence, tilt_confidence)
-            
-            if abs(yaw_ratio) > self.turn_threshold:
-                excess = abs(yaw_ratio) - self.turn_threshold
-                turn_confidence = clamp_confidence(min(excess / self.turn_threshold, 1.0) + 0.5)
-                max_confidence = max(max_confidence, turn_confidence)
-                
-            if abs(pitch_delta) > self.nod_threshold:
-                nod_confidence = clamp_confidence(abs(pitch_delta) / 0.3)
-                max_confidence = max(max_confidence, nod_confidence)
-            
+            if abs(roll_delta) > 0:
+                max_confidence = max(
+                    max_confidence,
+                    self._axis_confidence(abs(roll_delta), self.tilt_scale)
+                )
+            if abs(yaw_delta) > 0:
+                max_confidence = max(
+                    max_confidence,
+                    self._axis_confidence(abs(yaw_delta), self.turn_scale)
+                )
+            if abs(pitch_delta) > 0:
+                max_confidence = max(
+                    max_confidence,
+                    self._axis_confidence(abs(pitch_delta), self.nod_scale)
+                )
+
             results.append(GestureResult(
                 gesture_type=GestureType.HEAD_ORIENTATION,
                 confidence=max_confidence,
@@ -192,3 +182,37 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
             ))
         
         return results
+
+    def _compute_face_metrics(
+        self,
+        landmarks: Dict[str, Tuple[float, float, float]]
+    ) -> Optional[Tuple[float, float, float]]:
+        required_keys = ["LEFT_EAR", "RIGHT_EAR", "NOSE"]
+        if not all(k in landmarks for k in required_keys):
+            return None
+
+        left_ear = landmarks["LEFT_EAR"]
+        right_ear = landmarks["RIGHT_EAR"]
+        nose = landmarks["NOSE"]
+
+        dx = right_ear[0] - left_ear[0]
+        dy = right_ear[1] - left_ear[1]
+        face_width = math.sqrt(dx * dx + dy * dy)
+        if face_width == 0:
+            return None
+
+        roll_angle = self._get_angle(left_ear[:2], right_ear[:2])
+        roll_angle = quantize_value(roll_angle, 0.5)
+
+        mid_x = (left_ear[0] + right_ear[0]) / 2
+        yaw_ratio = (nose[0] - mid_x) / face_width
+        yaw_ratio = quantize_value(yaw_ratio, 0.01)
+
+        mid_y = (left_ear[1] + right_ear[1]) / 2
+        pitch_ratio = (nose[1] - mid_y) / face_width
+        pitch_ratio = quantize_value(pitch_ratio, 0.01)
+
+        return roll_angle, yaw_ratio, pitch_ratio
+
+    def _axis_confidence(self, value: float, scale: float) -> float:
+        return clamp_confidence(0.6 + (value / scale) * 0.6)

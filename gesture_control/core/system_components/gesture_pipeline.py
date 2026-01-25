@@ -76,7 +76,11 @@ class GesturePipeline:
                 self.last_gesture = getattr(best_gesture, "name", "Unknown")
                 self.logger.debug(f"Gesture detected: {self.last_gesture}")
 
-            self._handle_calibration(gesture_results, camera_frame.landmarks)
+            self._handle_calibration(
+                gesture_results,
+                camera_frame.landmarks,
+                camera_frame.face_landmarks
+            )
 
             control_state = None
             if self.game_controller:
@@ -117,7 +121,7 @@ class GesturePipeline:
             self.logger.error(f"Frame analysis error: {e}")
             return None
 
-    def _handle_calibration(self, gesture_results, landmarks) -> None:
+    def _handle_calibration(self, gesture_results, landmarks, face_landmarks) -> None:
         """Handle activation-based calibration."""
         if not gesture_results or not landmarks or not self.gesture_recognizer:
             return
@@ -128,7 +132,7 @@ class GesturePipeline:
         )
 
         if activation_detected and not self.gesture_recognizer.is_calibrated():
-            if self.gesture_recognizer.calibrate(landmarks):
+            if self.gesture_recognizer.calibrate(landmarks, face_landmarks):
                 self.logger.info("[ACTIVATION] Calibration completed!")
 
     def _quantize_landmarks_for_debug(self, landmarks):
@@ -222,6 +226,10 @@ class GesturePipeline:
 
         head_gestures = []
         head_strengths = {}
+        head_config = self.config.strategies.head
+        tilt_scale = max(head_config.tilt_threshold_deg * 3.0, 12.0)
+        turn_scale = max(head_config.turn_threshold_ratio * 3.0, 0.18)
+        nod_scale = max(head_config.nod_threshold_ratio * 3.0, 0.15)
         if gesture_results:
             for gesture in gesture_results:
                 if hasattr(gesture, "gesture_type") and hasattr(gesture, "data") and gesture.data:
@@ -234,24 +242,25 @@ class GesturePipeline:
                                 raw = float(raw)
                             except Exception:
                                 raw = 0.0
-                            value = max(-1.0, min(1.0, raw / 45.0))
+                            value = max(-1.0, min(1.0, raw / tilt_scale))
                             head_gestures.append(f"TILT {str(direction).upper()}")
                             head_strengths["head_tilt"] = {"direction": direction, "value": value, "debug": raw}
                         elif gtype == "HEAD_TURN":
-                            value = gesture.data.get("value", 0.0)
+                            raw = gesture.data.get("value", 0.0)
                             try:
-                                value = float(value)
+                                raw = float(raw)
                             except Exception:
-                                value = 0.0
+                                raw = 0.0
+                            value = max(-1.0, min(1.0, raw / turn_scale))
                             head_gestures.append(f"TURN {str(direction).upper()}")
-                            head_strengths["head_turn"] = {"direction": direction, "value": value, "debug": value}
+                            head_strengths["head_turn"] = {"direction": direction, "value": value, "debug": raw}
                         elif gtype == "HEAD_NOD":
                             raw = gesture.data.get("value", 0.0)
                             try:
                                 raw = float(raw)
                             except Exception:
                                 raw = 0.0
-                            value = max(-1.0, min(1.0, raw / 0.3))
+                            value = max(-1.0, min(1.0, raw / nod_scale))
                             head_gestures.append(f"NOD {str(direction).upper()}")
                             head_strengths["head_nod"] = {"direction": direction, "value": value, "debug": raw}
 
