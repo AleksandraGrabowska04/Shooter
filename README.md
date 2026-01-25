@@ -32,7 +32,6 @@ pip install -r requirements.txt
 
 ### Launch Game
 ```bash
-python play.py          # Quick start
 python main.py game     # Full game with options
 python main.py debug    # Debug mode with visual feedback
 ```
@@ -67,7 +66,6 @@ python main.py game --camera-index 1      # Use different camera
 
 # Debug mode
 python main.py debug                      # Visual debug information
-python main.py monitor                    # Camera preview with minimal overlays
 ```
 
 ## Troubleshooting
