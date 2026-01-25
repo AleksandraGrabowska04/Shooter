@@ -1,4 +1,5 @@
 import moderngl as mgl
+from pathlib import Path
 from settings import *
 from texture_builder import TextureArrayBuilder
 
@@ -18,7 +19,9 @@ class Textures:
         self.texture_array.use(location=TEXTURE_UNIT_0)
 
     def load(self, file_path):
-        texture = pg.image.load(f'assets/{file_path}')
+        assets_dir = Path(__file__).resolve().parent / 'assets'
+        texture_path = assets_dir / file_path
+        texture = pg.image.load(str(texture_path))
         texture = pg.transform.flip(texture, flip_x=True, flip_y=False)
 
         num_layers = texture.get_height() // texture.get_width()

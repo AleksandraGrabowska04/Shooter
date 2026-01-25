@@ -1,5 +1,12 @@
+import argparse
+import os
 import sys
 import moderngl as mgl
+
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
 from engine import Engine
 from settings import *
 
@@ -8,7 +15,7 @@ from settings import *
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, use_gestures: bool = False):
         pg.init()
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, MAJOR_VERSION)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, MINOR_VERSION)
@@ -31,7 +38,7 @@ class Game:
         self.is_running = True
         self.fps_value = 0
 
-        self.engine = Engine(self)
+        self.engine = Engine(self, use_gesture_control=use_gestures)
 
         self.anim_trigger = False
         self.anim_event = pg.USEREVENT + 0
@@ -74,10 +81,19 @@ class Game:
             self.handle_events()
             self.update()
             self.render()
+        self.engine.shutdown()
         pg.quit()
         sys.exit()
 
 
 if __name__ == '__main__':
-    game = Game()
+    parser = argparse.ArgumentParser(description="Wolfenstein")
+    parser.add_argument(
+        "--gestures",
+        action="store_true",
+        help="Enable gesture control integration"
+    )
+    args = parser.parse_args()
+
+    game = Game(use_gestures=args.gestures)
     game.run()

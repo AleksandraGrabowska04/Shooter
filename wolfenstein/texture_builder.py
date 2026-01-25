@@ -4,21 +4,25 @@ import re
 import pygame as pg
 from settings import TEX_SIZE
 
+BASE_DIR = pathlib.Path(__file__).resolve().parent
+
 # cały ten plik odpowiada po prostu za pocięcie texturearray na teksturki
 class TextureArrayBuilder:
     def __init__(self, should_build=True):
         if should_build:
             # main textures
             self.build(
-                load_path='assets/textures',
-                texture_array_path='assets/texture_array/texture_array.png',
-                sprite_sheet_path='assets/sprite_sheet/sprite_sheet.png'
+                load_path=BASE_DIR / 'assets' / 'textures',
+                texture_array_path=BASE_DIR / 'assets' / 'texture_array' / 'texture_array.png',
+                sprite_sheet_path=BASE_DIR / 'assets' / 'sprite_sheet' / 'sprite_sheet.png'
             )
 
     def build(self, load_path, texture_array_path, sprite_sheet_path, tex_size=TEX_SIZE):
-        texture_paths = [
-            item for item in pathlib.Path(load_path).rglob('*.png') if item.is_file()
-        ]
+        load_path = pathlib.Path(load_path)
+        texture_array_path = pathlib.Path(texture_array_path)
+        sprite_sheet_path = pathlib.Path(sprite_sheet_path)
+
+        texture_paths = [item for item in load_path.rglob('*.png') if item.is_file()]
         texture_paths = sorted(
             texture_paths,
             key=lambda tex_path: int(re.search('\\d+', str(tex_path)).group(0))

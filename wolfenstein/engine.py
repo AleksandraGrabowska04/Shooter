@@ -5,12 +5,14 @@ from shader_program import ShaderProgram
 from textures import Textures
 from ray_casting import RayCasting
 from path_finding import PathFinder
+from gesture_connector import WolfensteinGestureConnector
 
 class Engine:
-    def __init__(self, app):
+    def __init__(self, app, use_gesture_control: bool = False):
         self.app = app
         self.ctx = app.ctx
         # self.num_level = 0
+        self.use_gesture_control = use_gesture_control
 
         self.textures = Textures(self)
         # self.sound = Sound()
@@ -23,6 +25,7 @@ class Engine:
         self.level_map: LevelMap = None
         self.ray_casting: RayCasting = None
         self.path_finder: PathFinder = None
+        self.gesture_connector: WolfensteinGestureConnector = None
         self.new_game()
 
     def new_game(self):
@@ -37,6 +40,12 @@ class Engine:
         self.path_finder = PathFinder(self)
 
         self.scene = Scene(self)
+        if self.use_gesture_control:
+            if self.gesture_connector:
+                self.gesture_connector.shutdown()
+            self.gesture_connector = WolfensteinGestureConnector(self)
+            if not self.gesture_connector.initialize():
+                self.gesture_connector = None
 
     def update_npc_map(self):
         new_npc_map = {}
@@ -53,9 +62,15 @@ class Engine:
 
     def update(self):
         self.update_npc_map()
+        if self.gesture_connector:
+            self.gesture_connector.update()
         self.player.update()
         self.shader_program.update()
         self.scene.update()
+
+    def shutdown(self):
+        if self.gesture_connector:
+            self.gesture_connector.shutdown()
 
         # self.delta_time = self.clock.tick()
         # self.time = pg.time.get_ticks() * 0.001

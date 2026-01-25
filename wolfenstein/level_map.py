@@ -1,4 +1,5 @@
 import pytmx
+from pathlib import Path
 from settings import *
 from game_objects.door import Door
 from game_objects.item import Item
@@ -7,7 +8,9 @@ from game_objects.npc import NPC
 class LevelMap:
     def __init__(self, eng, tmx_file='level_0.tmx'):
         self.eng = eng
-        self.tiled_map = pytmx.TiledMap(f'resources/levels/{tmx_file}')
+        base_dir = Path(__file__).resolve().parent
+        tmx_path = base_dir / 'resources' / 'levels' / tmx_file
+        self.tiled_map = pytmx.TiledMap(str(tmx_path))
         self.gid_map = self.tiled_map.tiledgidmap
 
         self.width = self.tiled_map.width

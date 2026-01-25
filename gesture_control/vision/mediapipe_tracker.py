@@ -9,10 +9,18 @@ from typing import Optional, Dict, Tuple
 
 try:
     import mediapipe as mp
+    try:
+        import mediapipe.solutions as mp_solutions
+    except Exception:
+        try:
+            from mediapipe.python import solutions as mp_solutions
+        except Exception:
+            mp_solutions = None
     MP_AVAILABLE = True
 except ImportError:
     MP_AVAILABLE = False
     mp = None
+    mp_solutions = None
 
 from ..core.interfaces import IHandTracker
 from ..core.config import ApplicationConfig
@@ -53,11 +61,19 @@ class MediaPipeHandTracker(IHandTracker):
         if not MP_AVAILABLE or mp is None:
             raise Exception(
                 "MediaPipe is not available. Please install: pip install mediapipe")
+        if mp_solutions is None:
+            version = getattr(mp, "__version__", "unknown")
+            raise Exception(
+                "MediaPipe solutions API is not available. "
+                f"Installed version: {version}. "
+                "Please install a compatible version, for example: "
+                "pip install 'mediapipe==0.10.14'"
+            )
 
         # Initialize MediaPipe
         try:
-            self.mp_hands = mp.solutions.hands  # type: ignore
-            self.mp_draw = mp.solutions.drawing_utils  # type: ignore
+            self.mp_hands = mp_solutions.hands  # type: ignore
+            self.mp_draw = mp_solutions.drawing_utils  # type: ignore
 
             # Create MediaPipe hands processor
             self.hands = self.mp_hands.Hands(
@@ -66,7 +82,7 @@ class MediaPipeHandTracker(IHandTracker):
                 min_tracking_confidence=config.gestures.min_tracking_confidence
             )
             # Initialize MediaPipe FaceMesh (head landmark model)
-            self.mp_face = mp.solutions.face_mesh
+            self.mp_face = mp_solutions.face_mesh
             self.face_mesh = self.mp_face.FaceMesh(
                 max_num_faces=1,
                 refine_landmarks=True,

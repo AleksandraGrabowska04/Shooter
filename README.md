@@ -68,6 +68,15 @@ python main.py game --camera-index 1      # Use different camera
 python main.py debug                      # Visual debug information
 ```
 
+## Wolfenstein
+
+```bash
+python wolfenstein/main.py                # Keyboard/mouse controls
+python wolfenstein/main.py --gestures     # Gesture control connector
+```
+
+Note: the Wolfenstein renderer requires OpenGL support.
+
 ## Troubleshooting
 
 **Camera not detected:**

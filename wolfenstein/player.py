@@ -26,6 +26,16 @@ class Player(Camera):
         self.weapons = {ID.KNIFE_0: 1, ID.PISTOL_0: 0, ID.RIFLE_0: 0}
         self.weapons_cycle = cycle(self.weapons.keys())
         self.weapon_id = ID.KNIFE_0
+        self.weapon_ids = list(self.weapons.keys())
+        self.weapon_index = 0
+
+        # gesture control
+        self.gesture_active = False
+        self.gesture_move = glm.vec2(0, 0)
+        self.gesture_turn = 0.0
+        self.gesture_pitch = 0.0
+        self.gesture_shoot = False
+        self.gesture_weapon_change = 0
 
     def update_tile_position(self):
         self.tile_pos = int(self.position.x), int(self.position.z)
@@ -71,9 +81,8 @@ class Player(Camera):
 
         # switch weapon by mouse wheel
         if event.type == pygame.MOUSEWHEEL:
-            weapon_id = next(self.weapons_cycle)
-            if self.weapons[weapon_id]:
-                self.switch_weapon(weapon_id=weapon_id)
+            direction = 1 if event.y > 0 else -1
+            self.cycle_weapon(direction)
 
         # shooting
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -104,7 +113,20 @@ class Player(Camera):
     def switch_weapon(self, weapon_id):
         if self.weapons[weapon_id]:
             self.weapon_id = weapon_id
-            self.weapon_instance.weapon_id = self.weapon_id
+            self.weapon_index = self.weapon_ids.index(weapon_id)
+            if hasattr(self, "weapon_instance") and self.weapon_instance:
+                self.weapon_instance.weapon_id = self.weapon_id
+
+    def cycle_weapon(self, direction: int) -> None:
+        if direction == 0:
+            return
+
+        for _ in range(len(self.weapon_ids)):
+            self.weapon_index = (self.weapon_index + (1 if direction > 0 else -1)) % len(self.weapon_ids)
+            weapon_id = self.weapon_ids[self.weapon_index]
+            if self.weapons[weapon_id]:
+                self.switch_weapon(weapon_id=weapon_id)
+                break
 
     def do_shot(self):
         if self.weapon_id == ID.KNIFE_0:
@@ -133,8 +155,11 @@ class Player(Camera):
             door.is_moving = True
 
     def update(self):
-        self.mouse_control()
-        self.keyboard_control()
+        if self.gesture_active:
+            self._apply_gesture_control()
+        else:
+            self.mouse_control()
+            self.keyboard_control()
         # self.position.x += 0.1
         # print(str(self.position) + "####"+ str(self.yaw))         # TODO: checkpoint
         super().update()
@@ -170,6 +195,50 @@ class Player(Camera):
         #     next_step += self.move_down(vel)
         #
         self.move(next_step=next_step)
+
+    def set_gesture_input(
+        self,
+        active: bool,
+        move=(0.0, 0.0),
+        turn: float = 0.0,
+        pitch: float = 0.0,
+        shoot: bool = False,
+        weapon_change: int = 0,
+    ) -> None:
+        self.gesture_active = active
+        self.gesture_move = glm.vec2(move[0], move[1])
+        self.gesture_turn = turn
+        self.gesture_pitch = pitch
+        self.gesture_shoot = shoot
+        self.gesture_weapon_change = weapon_change
+
+    def _apply_gesture_control(self) -> None:
+        vel = PLAYER_SPEED * self.app.delta_time
+        next_step = glm.vec2()
+
+        if self.gesture_move.y < 0:
+            next_step += self.move_forward(vel * abs(self.gesture_move.y))
+        elif self.gesture_move.y > 0:
+            next_step += self.move_back(vel * abs(self.gesture_move.y))
+
+        if self.gesture_move.x > 0:
+            next_step += self.move_right(vel * abs(self.gesture_move.x))
+        elif self.gesture_move.x < 0:
+            next_step += self.move_left(vel * abs(self.gesture_move.x))
+
+        if next_step.x or next_step.y:
+            self.move(next_step=next_step)
+
+        if self.gesture_turn:
+            self.rotate_yaw(delta_x=self.gesture_turn * PLAYER_ROT_SPEED * self.app.delta_time)
+        if self.gesture_pitch:
+            self.rotate_pitch(delta_y=self.gesture_pitch * PLAYER_ROT_SPEED * self.app.delta_time)
+
+        if self.gesture_weapon_change:
+            self.cycle_weapon(self.gesture_weapon_change)
+
+        if self.gesture_shoot:
+            self.do_shot()
 
     def move(self, next_step):
         if not self.is_collide(dx=next_step[0]):

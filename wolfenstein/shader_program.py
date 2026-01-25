@@ -1,3 +1,4 @@
+from pathlib import Path
 from settings import *
 
 class ShaderProgram:
@@ -46,10 +47,11 @@ class ShaderProgram:
 
 
     def get_program(self, shader_name):
-        with open(f'shaders/{shader_name}.vert') as file:
+        base_dir = Path(__file__).resolve().parent / 'shaders'
+        with open(base_dir / f'{shader_name}.vert') as file:
             vertex_shader = file.read()
 
-        with open(f'shaders/{shader_name}.frag') as file:
+        with open(base_dir / f'{shader_name}.frag') as file:
             fragment_shader = file.read()
 
         program = self.ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
