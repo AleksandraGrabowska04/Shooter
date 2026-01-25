@@ -135,7 +135,7 @@ class WolfensteinGestureConnector:
         move_x, move_y = move
         player.set_gesture_input(
             active=active,
-            move=(move_x, -move_y),
+            move=(move_x, move_y),
             turn=turn,
             pitch=pitch,
             shoot=shoot,
