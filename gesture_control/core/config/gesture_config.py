@@ -19,7 +19,7 @@ class GestureConfig:
     
     # Position detection  
     position_smoothing_factor: float = 0.3
-    position_threshold: float = 0.05
+    position_threshold: float = 0.08
     
     # Motion detection
     motion_threshold: float = 0.02

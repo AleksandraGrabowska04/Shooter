@@ -61,9 +61,9 @@ class MotionStrategyConfig:
 @dataclass
 class HeadOrientationStrategyConfig:
     """Configuration for head orientation detection."""
-    tilt_threshold_deg: float = 4.0        # Neutral range for roll (degrees)
-    turn_threshold_ratio: float = 0.06     # Neutral range for yaw (ratio of face width)
-    nod_threshold_ratio: float = 0.05      # Neutral range for pitch (ratio of face width)
+    tilt_threshold_deg: float = 6.0        # Neutral range for roll (degrees)
+    turn_threshold_ratio: float = 0.09     # Neutral range for yaw (ratio of face width)
+    nod_threshold_ratio: float = 0.08      # Neutral range for pitch (ratio of face width)
     turn_gain: float = 0.7                 # Boost yaw to reduce head turn range
     tilt_gain: float = 0.6                 # Optional tilt sensitivity scaling
     nod_gain: float = 0.6                  # Optional nod sensitivity scaling

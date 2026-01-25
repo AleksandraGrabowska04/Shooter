@@ -43,9 +43,9 @@ class ActionEvent:
 
 @dataclass(frozen=True)
 class ModeChangeEvent:
-    """Mode change input derived from head tilt."""
+    """Mode change input derived from head turn."""
     direction: str
-    tilt: float
+    turn: float
 
 
 @dataclass(frozen=True)
@@ -164,9 +164,9 @@ class GameControlFacade:
 
         if command_type == "MODE_CHANGE":
             direction = str(data.get("change_direction", "next"))
-            tilt = _to_float(data.get("tilt"), 0.0)
+            turn = _to_float(data.get("turn", data.get("tilt")), 0.0)
             self._handler.on_mode_change(
-                ModeChangeEvent(direction=direction, tilt=tilt)
+                ModeChangeEvent(direction=direction, turn=turn)
             )
             return
 

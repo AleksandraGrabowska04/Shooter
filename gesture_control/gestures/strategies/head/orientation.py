@@ -55,6 +55,12 @@ class HeadOrientationStrategy(GestureDetectionStrategy):
         calibration: CalibrationData
     ) -> List[GestureResult]:
         results = []
+        if not calibration or not calibration.is_calibrated:
+            return results
+        if (calibration.head_roll_neutral is None or
+                calibration.head_yaw_neutral is None or
+                calibration.head_pitch_neutral is None):
+            return results
         metrics = self._compute_face_metrics(landmarks)
         if not metrics:
             return results

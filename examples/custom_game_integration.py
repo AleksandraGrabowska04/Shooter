@@ -177,7 +177,7 @@ def _build_simulation_steps() -> List[SimulationStep]:
                 is_calibrated=True,
                 status_message="Rotating",
                 hand_state=HandState.OPEN,
-                rotation_vector=RotationVector(tilt=0.0, turn=0.6, nod=0.0),
+                rotation_vector=RotationVector(tilt=0.6, turn=0.0, nod=0.0),
             ),
         ),
         SimulationStep(
@@ -187,7 +187,7 @@ def _build_simulation_steps() -> List[SimulationStep]:
                 is_calibrated=True,
                 status_message="Mode change",
                 hand_state=HandState.OPEN,
-                rotation_vector=RotationVector(tilt=0.45, turn=0.0, nod=0.0),
+                rotation_vector=RotationVector(tilt=0.0, turn=0.45, nod=0.0),
             ),
         ),
         SimulationStep(
