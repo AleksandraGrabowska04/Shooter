@@ -1,55 +1,29 @@
 #!/usr/bin/env python3
 """
-Hand Control System - Entry Point
+Gesture Control System - Entry Point
 =================================
 
 Modes:
-    monitor     - Lightweight monitoring with camera preview
     game        - Full integrated game experience
-    debug       - Debug monitoring with visual feedback
+    debug       - Debug mode with visual feedback
 
 Usage:
-    python main.py monitor           # Monitoring mode (default)
     python main.py game              # Full game experience
     python main.py debug             # Debug mode with visuals
     python main.py --help            # Show all options
-    python play.py                   # Quick game launcher
 """
 
 import argparse
 import sys
 import logging
-from hand_control.constants import DEFAULT_CAMERA_WIDTH, DEFAULT_CAMERA_HEIGHT, DEFAULT_FPS
-from hand_control.core import create_hand_control_system, ApplicationConfig
-from hand_control.utils.factory import DefaultLogger
-
-
-def run_monitor_mode(config: ApplicationConfig, logger) -> None:
-    """Run console monitoring mode."""
-    print("Starting Hand Control Console Monitor...")
-    print("Note: A camera preview window will open. Use Ctrl+C to exit.")
-    
-    try:
-        config.enable_debug_mode = False
-        config.ui.show_debug_info = False
-        config.ui.show_landmarks = False
-
-        system = create_hand_control_system(config, logger)
-        if system.initialize():
-            system.run()
-        else:
-            logger.error("Failed to initialize hand control system")
-            
-    except KeyboardInterrupt:
-        print("\n👋 Monitoring stopped by user")
-    except Exception as e:
-        logger.error(f"Error in monitor mode: {e}")
-        raise
+from gesture_control.constants import DEFAULT_CAMERA_WIDTH, DEFAULT_CAMERA_HEIGHT, DEFAULT_FPS
+from gesture_control.core import create_gesture_control_system, ApplicationConfig
+from gesture_control.utils.factory import DefaultLogger
 
 
 def run_game_mode(config: ApplicationConfig, logger) -> None:
     """Run full integrated game experience."""
-    print("Starting Hand Control Game Mode...")
+    print("Starting Gesture Control Game Mode...")
     
     try:
         # Use GameEngine directly for better performance
@@ -69,7 +43,7 @@ def run_game_mode(config: ApplicationConfig, logger) -> None:
 
 def run_debug_mode(config: ApplicationConfig, logger) -> None:
     """Run debug mode with visual feedback."""
-    print("Starting Hand Control Debug Mode...")
+    print("Starting Gesture Control Debug Mode...")
     
     try:
         # Enable debug settings
@@ -77,11 +51,11 @@ def run_debug_mode(config: ApplicationConfig, logger) -> None:
         config.ui.show_debug_info = True
         config.ui.show_landmarks = True
         
-        system = create_hand_control_system(config, logger)
+        system = create_gesture_control_system(config, logger)
         if system.initialize():
             system.run()
         else:
-            logger.error("Failed to initialize hand control system")
+            logger.error("Failed to initialize gesture control system")
             
     except KeyboardInterrupt:
         print("\n👋 Debug mode stopped by user")
@@ -93,15 +67,13 @@ def run_debug_mode(config: ApplicationConfig, logger) -> None:
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Hand Control System - Entry Point",
+        description="Gesture Control System - Entry Point",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py monitor           # Monitor (default)
   python main.py game              # Full game experience
   python main.py debug             # Debug mode with visuals
   python main.py game --fps 60    # Game at 60fps
-  python play.py                   # Quick game start
         """
     )
     
@@ -109,9 +81,9 @@ Examples:
     parser.add_argument(
         'mode',
         nargs='?',
-        choices=['monitor', 'game', 'debug'],
-        default='monitor',
-        help='Operating mode: monitor (camera preview), game (full game), debug (visual debug)'
+        choices=['game', 'debug'],
+        default='game',
+        help='Operating mode: game (full game), debug (visual debug)'
     )
     
     # Camera settings
@@ -148,8 +120,6 @@ def main():
     # Setup logging based on mode
     if args.mode == 'debug':
         log_level = logging.DEBUG
-    elif args.mode == 'monitor':
-        log_level = logging.INFO  
     else:  # game mode
         log_level = logging.WARNING  # Less verbose for game
         
@@ -168,13 +138,11 @@ def main():
     config.camera.camera_index = args.camera_index
     
     # Create logger
-    logger = DefaultLogger(name="hand_control_app", config=config)
+    logger = DefaultLogger(name="gesture_control_app", config=config)
     
     # Run the selected mode
     try:
-        if args.mode == 'monitor':
-            run_monitor_mode(config, logger)
-        elif args.mode == 'game':
+        if args.mode == 'game':
             run_game_mode(config, logger)
         elif args.mode == 'debug':
             run_debug_mode(config, logger)

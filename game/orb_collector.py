@@ -1,8 +1,8 @@
 """
-Orb Collector - Demo game for hand control integration.
+Orb Collector - Demo game for gesture control integration.
 
 Move a drone to collect energy orbs and avoid hazards.
-Fist triggers a pulse. Head tilt cycles pulse modes. Head nod recharges energy.
+Fist fires in the facing direction. Head turn cycles weapons. Head nod recharges energy.
 """
 
 import math
@@ -98,44 +98,51 @@ class Starfield:
 
 
 @dataclass(frozen=True)
-class PulseMode:
-    """Pulse mode settings."""
+class BulletMode:
+    """Bullet mode settings."""
     name: str
-    radius: float
+    speed: float
     cost: int
     cooldown: float
     color: Tuple[int, int, int]
+    radius: int
+    lifetime: float
 
 
-class Pulse:
-    """Expanding pulse that clears hazards."""
+class Bullet:
+    """Directional projectile fired from the drone."""
 
-    def __init__(self, position: Vector2, mode: PulseMode):
+    def __init__(self, position: Vector2, direction: Vector2, mode: BulletMode):
         self.position = Vector2(position.x, position.y)
-        self.radius = 8.0
-        self.max_radius = mode.radius
-        self.speed = mode.radius * 1.8
+        self.velocity = direction.normalize() * mode.speed
         self.color = mode.color
+        self.radius = mode.radius
+        self.lifetime = mode.lifetime
         self.alive = True
 
     def update(self, dt: float) -> None:
-        self.radius += self.speed * dt
-        if self.radius >= self.max_radius:
+        self.position = self.position + self.velocity * dt
+        self.lifetime -= dt
+        if self.lifetime <= 0:
+            self.alive = False
+            return
+
+        if (self.position.x < -self.radius or
+                self.position.x > WINDOW_WIDTH + self.radius or
+                self.position.y < -self.radius or
+                self.position.y > WINDOW_HEIGHT + self.radius):
             self.alive = False
 
     def draw(self, screen: pygame.Surface) -> None:
-        alpha = max(0, 180 - int(self.radius * 0.8))
-        if alpha <= 0:
-            return
-        pulse_surface = pygame.Surface((int(self.radius * 2), int(self.radius * 2)), pygame.SRCALPHA)
+        glow_surface = pygame.Surface((self.radius * 4, self.radius * 4), pygame.SRCALPHA)
         pygame.draw.circle(
-            pulse_surface,
-            (*self.color, alpha),
-            (int(self.radius), int(self.radius)),
-            int(self.radius),
-            2
+            glow_surface,
+            (*self.color, 90),
+            (self.radius * 2, self.radius * 2),
+            self.radius * 2
         )
-        screen.blit(pulse_surface, (self.position.x - self.radius, self.position.y - self.radius))
+        screen.blit(glow_surface, (self.position.x - self.radius * 2, self.position.y - self.radius * 2))
+        pygame.draw.circle(screen, self.color, self.position.to_tuple(), self.radius)
 
 
 class Orb:
@@ -230,6 +237,10 @@ class Drone:
         self.angle_velocity += turn * self.turn_accel
         self.angle_velocity = max(-360, min(360, self.angle_velocity))
 
+    def get_forward_vector(self) -> Vector2:
+        angle_rad = math.radians(self.angle)
+        return Vector2(math.cos(angle_rad), math.sin(angle_rad))
+
     def update(self, dt: float) -> None:
         self.velocity = self.velocity + self.acceleration * dt
         speed = self.velocity.length()
@@ -261,8 +272,7 @@ class Drone:
         self.velocity = Vector2(0, 0)
 
     def draw(self, screen: pygame.Surface) -> None:
-        angle_rad = math.radians(self.angle)
-        forward = Vector2(math.cos(angle_rad), math.sin(angle_rad))
+        forward = self.get_forward_vector()
         right = Vector2(-forward.y, forward.x)
 
         nose = self.position + forward * self.size
@@ -300,7 +310,7 @@ class OrbCollectorGame:
         self.player = Drone(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
         self.orbs: List[Orb] = []
         self.hazards: List[Hazard] = []
-        self.pulses: List[Pulse] = []
+        self.bullets: List[Bullet] = []
 
         self.score = 0
         self.lives = 3
@@ -309,9 +319,9 @@ class OrbCollectorGame:
         self.control_active = False
 
         self.modes = [
-            PulseMode("pulse", radius=120, cost=22, cooldown=0.4, color=ACCENT_GOLD),
-            PulseMode("nova", radius=180, cost=35, cooldown=0.7, color=ACCENT_BLUE),
-            PulseMode("burst", radius=90, cost=15, cooldown=0.25, color=ACCENT_RED),
+            BulletMode("dart", speed=520, cost=10, cooldown=0.22, color=ACCENT_GOLD, radius=4, lifetime=1.4),
+            BulletMode("bolt", speed=420, cost=16, cooldown=0.35, color=ACCENT_BLUE, radius=6, lifetime=1.6),
+            BulletMode("cannon", speed=320, cost=24, cooldown=0.55, color=ACCENT_RED, radius=8, lifetime=1.8),
         ]
         self.current_mode_index = 0
 
@@ -319,7 +329,7 @@ class OrbCollectorGame:
         self.energy = self.max_energy
         self.recharging = False
         self.recharge_rate = 30.0
-        self.last_pulse_time = 0.0
+        self.last_shot_time = 0.0
 
         self.orb_target_count = 6
         self.hazard_spawn_interval = 1.3
@@ -378,22 +388,24 @@ class OrbCollectorGame:
         self.player.apply_movement(vector, velocity)
 
     def _handle_rotation_command(self, data: Dict[str, Any]) -> None:
-        turn = float(data.get("turn", 0.0))
-        self.player.apply_turn(turn)
+        tilt = float(data.get("tilt", 0.0))
+        self.player.apply_turn(tilt)
 
     def _handle_shoot_command(self) -> None:
         mode = self.modes[self.current_mode_index]
         current_time = time.time()
         if self.recharging:
             return
-        if current_time - self.last_pulse_time < mode.cooldown:
+        if current_time - self.last_shot_time < mode.cooldown:
             return
         if self.energy < mode.cost:
             return
 
-        self.pulses.append(Pulse(self.player.position, mode))
+        forward = self.player.get_forward_vector()
+        spawn = self.player.position + forward * (self.player.size + mode.radius + 4)
+        self.bullets.append(Bullet(spawn, forward, mode))
         self.energy = max(0, self.energy - mode.cost)
-        self.last_pulse_time = current_time
+        self.last_shot_time = current_time
 
     def _handle_mode_change(self, data: Dict[str, Any]) -> None:
         direction = data.get("change_direction", "next")
@@ -431,11 +443,11 @@ class OrbCollectorGame:
         for hazard in self.hazards:
             hazard.update(dt)
 
-        for pulse in self.pulses:
-            pulse.update(dt)
+        for bullet in self.bullets:
+            bullet.update(dt)
 
         self.hazards = [h for h in self.hazards if h.alive]
-        self.pulses = [p for p in self.pulses if p.alive]
+        self.bullets = [b for b in self.bullets if b.alive]
 
         while len(self.orbs) < self.orb_target_count:
             self._spawn_orb()
@@ -469,11 +481,15 @@ class OrbCollectorGame:
                 hazard.alive = False
                 self.screen_shake = 1.0
 
-        for pulse in self.pulses:
+        for bullet in self.bullets:
+            if not bullet.alive:
+                continue
             for hazard in self.hazards[:]:
-                if (hazard.position - pulse.position).length() < pulse.radius:
+                if (hazard.position - bullet.position).length() < hazard.size + bullet.radius:
                     hazard.alive = False
+                    bullet.alive = False
                     self.score += 8
+                    break
 
     def _update_recharge(self, dt: float) -> None:
         if not self.recharging:
@@ -491,8 +507,8 @@ class OrbCollectorGame:
         shake_y = int(random.uniform(-6, 6) * self.screen_shake)
 
         temp_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
-        for pulse in self.pulses:
-            pulse.draw(temp_surface)
+        for bullet in self.bullets:
+            bullet.draw(temp_surface)
         for orb in self.orbs:
             orb.draw(temp_surface)
         for hazard in self.hazards:
@@ -564,13 +580,13 @@ class OrbCollectorGame:
     def _draw_instructions(self) -> None:
         instructions = [
             "CONTROLS",
-            "Hand: move drone  Fist: pulse",
-            "Head tilt: cycle mode  Head nod: recharge",
-            "Head turn: rotate",
+            "Hand: move drone  Fist: shoot",
+            "Head tilt: rotate  Head nod: recharge",
+            "Head turn: cycle weapon",
             "KEYBOARD",
             "WASD or arrows: move",
-            "Space: pulse  R: recharge",
-            "Q/E: cycle mode  P: pause"
+            "Space: shoot  R: recharge",
+            "Q/E: cycle weapon  P: pause"
         ]
 
         start_y = WINDOW_HEIGHT - 125
@@ -630,7 +646,7 @@ class OrbCollectorGame:
 
     def run(self) -> None:
         print("Starting Orb Collector")
-        print("Use hand gestures or keyboard controls if hand control is inactive")
+        print("Use hand gestures or keyboard controls if gesture control is inactive")
 
         while self.running:
             dt = self.clock.tick(FPS) / 1000.0
@@ -648,7 +664,7 @@ class OrbCollectorGame:
             'lives': self.lives,
             'orbs': len(self.orbs),
             'hazards': len(self.hazards),
-            'pulses': len(self.pulses),
+            'bullets': len(self.bullets),
             'control_active': self.control_active,
             'paused': self.paused,
             'fps': int(self.clock.get_fps())

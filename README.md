@@ -1,6 +1,6 @@
-# Hand Control Orb Collector
+# Gesture Control Orb Collector
 
-A gesture-controlled orb collection game using computer vision and hand tracking. Move the drone with your hand, make a fist to trigger a pulse, and use head movements to change modes and recharge energy.
+A gesture-controlled orb collection game using computer vision, hand tracking, and head movement. Move the drone with your hand, make a fist to shoot, and use head movements to rotate or change weapons.
 
 ## Quick Setup
 
@@ -32,26 +32,25 @@ pip install -r requirements.txt
 
 ### Launch Game
 ```bash
-python play.py          # Quick start
 python main.py game     # Full game with options
 python main.py debug    # Debug mode with visual feedback
 ```
 
 ### Gesture Controls
 - **Move**: Move your hand to steer the drone
-- **Pulse**: Make a fist to emit a pulse
-- **Change Mode**: Tilt head left/right to cycle pulse modes
+- **Shoot**: Make a fist to fire
+- **Change Mode**: Turn head left/right to cycle weapons
 - **Recharge**: Nod head up/down to recharge energy
-- **Rotate**: Turn head to rotate the drone
+- **Rotate**: Tilt head to rotate the drone
 
 Inputs use a deadzone so small movements are ignored until you cross the threshold.
 
 ### Keyboard Fallback
 When gesture recognition is unavailable or disabled:
 - **WASD / Arrow Keys**: Move
-- **Space**: Pulse
+- **Space**: Shoot
 - **R**: Recharge
-- **Q / E**: Change mode
+- **Q / E**: Change weapon
 - **P**: Pause
 - **ESC**: Quit game
 
@@ -67,7 +66,6 @@ python main.py game --camera-index 1      # Use different camera
 
 # Debug mode
 python main.py debug                      # Visual debug information
-python main.py monitor                    # Camera preview with minimal overlays
 ```
 
 ## Troubleshooting

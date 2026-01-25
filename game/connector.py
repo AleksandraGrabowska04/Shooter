@@ -11,8 +11,8 @@ from typing import Optional, Callable, Dict, Any
 from threading import Thread, Lock
 import queue
 
-from hand_control.core.types import ControlState, HandState
-from hand_control.core.interfaces import ILogger
+from gesture_control.core.types import ControlState, HandState
+from gesture_control.core.interfaces import ILogger
 
 
 @dataclass(frozen=True)
@@ -20,9 +20,9 @@ class InputDeadzoneConfig:
     """Deadzone and activation thresholds for gesture-driven input."""
     movement_deadzone: float = 0.2
     movement_min_magnitude: float = 0.02
-    rotation_deadzone: float = 0.12
-    tilt_deadzone: float = 0.25
-    nod_deadzone: float = 0.25
+    rotation_deadzone: float = 0.08
+    tilt_deadzone: float = 0.18
+    nod_deadzone: float = 0.18
 
 
 class GameCommand:
@@ -64,7 +64,7 @@ class ControlConnector:
         self._last_reload_time = 0.0
         self._last_control_state: Optional[ControlState] = None
         self._movement_active = False
-        self._tilt_armed = True
+        self._turn_armed = True
         self._nod_armed = True
         
         self._running = False
@@ -121,7 +121,7 @@ class ControlConnector:
             # Send deactivation command
             self._add_command("DEACTIVATE", {"reason": "control_off"})
             self._movement_active = False
-            self._tilt_armed = True
+            self._turn_armed = True
             self._nod_armed = True
             return
         
@@ -181,7 +181,7 @@ class ControlConnector:
         self._last_movement_time = current_time
     
     def _process_rotation(self, control_state: ControlState, current_time: float) -> None:
-        """Process rotation commands from head movements."""
+        """Process rotation commands from head tilt."""
         if current_time - self._last_rotation_time < self._rotation_update_interval:
             return
         
@@ -189,7 +189,7 @@ class ControlConnector:
         if not rotation:
             return
 
-        if abs(rotation.turn) < self.deadzones.rotation_deadzone:
+        if abs(rotation.tilt) < self.deadzones.tilt_deadzone:
             return
 
         rotation_data = {
@@ -217,30 +217,30 @@ class ControlConnector:
             self._last_shoot_time = current_time
     
     def _process_mode_changes(self, control_state: ControlState, current_time: float) -> None:
-        """Process mode change commands from head tilt."""
+        """Process mode change commands from head turn."""
         if current_time - self._last_mode_change_time < self._mode_change_cooldown:
             return
         
         rotation = control_state.rotation_vector
         if not rotation:
-            self._tilt_armed = True
+            self._turn_armed = True
             return
 
-        if abs(rotation.tilt) < self.deadzones.tilt_deadzone:
-            self._tilt_armed = True
+        if abs(rotation.turn) < self.deadzones.rotation_deadzone:
+            self._turn_armed = True
             return
 
-        if not self._tilt_armed:
+        if not self._turn_armed:
             return
 
-        mode_change = "next" if rotation.tilt > 0 else "previous"
+        mode_change = "next" if rotation.turn > 0 else "previous"
         mode_data = {
             'change_direction': mode_change,
-            'tilt': rotation.tilt
+            'turn': rotation.turn
         }
 
         self._add_command("MODE_CHANGE", mode_data)
-        self._tilt_armed = False
+        self._turn_armed = False
         self._last_mode_change_time = current_time
     
     def _process_reload(self, control_state: ControlState, current_time: float) -> None:
